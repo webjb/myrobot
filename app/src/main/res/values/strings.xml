@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">myrobot</string>
+    <string name="picture">Picture</string>
+    <string name="description_info">Info</string>
+    <string name="action_settings">Settings</string>
+    <string name="request_permission">This app needs camera permission.</string>
+</resources>

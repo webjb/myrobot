@@ -1,0 +1,79 @@
+//apply plugin: 'com.android.application'
+//android {
+//    compileSdkVersion 23
+//    buildToolsVersion "23.0.2"
+//    defaultConfig {
+//        applicationId "com.neza.myrobot"
+//        minSdkVersion 23
+//        targetSdkVersion 23
+//        versionCode 1
+//        versionName "1.0"
+//    }
+//    buildTypes {
+//        release {
+//            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+//        }
+//    }
+//}
+//dependencies {
+//    compile fileTree(dir: 'libs', include: ['*.jar'])
+//    testCompile 'junit:junit:4.12'
+//    compile 'com.android.support:appcompat-v7:23.1.1'
+//    compile 'com.android.support:design:23.1.1'
+//}
+apply plugin: 'com.android.model.application'
+model {
+    android {
+        compileSdkVersion = 23
+        buildToolsVersion = "23.0.2"
+
+        defaultConfig.with {
+            applicationId = "com.neza.myrobot"
+            minSdkVersion.apiLevel = 23
+            targetSdkVersion.apiLevel = 23
+        }
+    }
+
+    android.ndk {
+        moduleName = "myrobot"
+        cppFlags.add("-Werror")
+        ldLibs.addAll(["log", "GLESv2", "android"])
+        stl = "c++_static"
+    }
+
+    android.buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles.add(file('proguard-rules.txt'))
+        }
+    }
+
+    android.productFlavors {
+        create("arm7") {
+            ndk.abiFilters.add("armeabi-v7a")
+        }
+        create("arm8") {
+            ndk.abiFilters.add("arm64-v8a")
+        }
+        create("x86-32") {
+            ndk.abiFilters.add("x86")
+        }
+        // for detailed abiFilter descriptions, refer to "Supported ABIs" @
+        // https://developer.android.com/ndk/guides/abis.html#sa
+
+        // build one including all cpu architectures
+        create("all")
+    }
+}
+
+dependencies {
+//    compile fileTree(dir: 'libs', include: ['*.jar'])
+//    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.android.support:design:23.1.1'
+
+    compile 'com.android.support:support-v4:23.1.1'
+    compile 'com.android.support:support-v13:23.1.1'
+    compile 'com.android.support:gridlayout-v7:23.1.1'
+}
