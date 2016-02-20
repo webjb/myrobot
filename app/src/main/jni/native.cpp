@@ -117,9 +117,127 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         return false;
     }
 
+    if (!checkBufferSizesMatch(srcWidth, srcHeight, &buf)) {
+        LOGE("ANativeWindow buffer locked but its size was %d x %d, expected "
+                     "%d x %d", buf.width, buf.height, srcWidth, srcHeight);
+        ANativeWindow_unlockAndPost(win);
+        ANativeWindow_release(win);
+        return false;
+    }
 
     int32_t srcChromaWidth = srcWidth / 2;
     int32_t srcChromaHeight = srcHeight / 2;
+
+    uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
+    if (dstLumaPtr == NULL) {
+        LOGE("ANativeWindow dstLumaPtr NULL");
+        ANativeWindow_unlockAndPost(win);
+        ANativeWindow_release(win);
+        return false;
+    }
+
+    uint32_t dstLumaRowStrideBytes = buf.stride;
+    uint32_t dstLumaSizeBytes = dstLumaRowStrideBytes * buf.height;
+    uint32_t dstChromaRowStrideBytes = ALIGN(buf.stride / 2, 16);
+    // Size of one chroma plane.
+    uint32_t dstChromaSizeBytes = dstChromaRowStrideBytes * buf.height / 2;
+    // Yes, V is actually first.
+    uint8_t *dstChromaVPtr = dstLumaPtr + dstLumaSizeBytes;
+    uint8_t *dstChromaUPtr = dstLumaPtr + dstLumaSizeBytes + dstChromaSizeBytes;
+
+    // Copy over the luma channel.
+    // If strides match, then it's a single copy.
+    if (srcLumaRowStrideBytes == dstLumaRowStrideBytes) {
+        memcpy(dstLumaPtr, srcLumaPtr, dstLumaSizeBytes);
+    } else {
+        // Else, copy row by row.
+        for (int y = 0; y < srcHeight; y++) {
+            uint8_t *srcLumaRow = srcLumaPtr + y * srcLumaRowStrideBytes;
+            uint8_t *dstLumaRow = dstLumaPtr + y * dstLumaRowStrideBytes;
+            memcpy(dstLumaRow, srcLumaRow, srcLumaRowStrideBytes);
+        }
+    }
+
+    bool succeeded;
+
+    // Handle the chroma channels.
+    // If they are not interleaved, then use memcpy.
+    // Otherwise, use Halide to deinterleave.
+//    if (srcChromaElementStrideBytes == 1) {
+    if (srcChromaElementStrideBytes == 1) {
+        // If strides match, then it's a single copy per channel.
+        if (srcChromaRowStrideBytes == dstChromaRowStrideBytes) {
+            memcpy(dstChromaUPtr, srcChromaUPtr, dstChromaSizeBytes);
+            memcpy(dstChromaVPtr, srcChromaVPtr, dstChromaSizeBytes);
+        } else {
+            // Else, copy row by row.
+            for (int y = 0; y < srcHeight; y++) {
+                uint8_t *srcChromaURow =
+                        srcChromaUPtr + y * srcChromaRowStrideBytes;
+                uint8_t *dstChromaURow =
+                        dstChromaUPtr + y * srcChromaRowStrideBytes;
+                memcpy(dstChromaURow, srcChromaURow, srcChromaRowStrideBytes);
+            }
+            for (int y = 0; y < srcHeight; y++) {
+                uint8_t *srcChromaVRow =
+                        srcChromaVPtr + y * srcChromaRowStrideBytes;
+                uint8_t *dstChromaVRow =
+                        dstChromaVPtr + y * srcChromaRowStrideBytes;
+                memcpy(dstChromaVRow, srcChromaVRow, srcChromaRowStrideBytes);
+            }
+        }
+        succeeded = true;
+    } else {
+        LOGE("dddddd");
+#if 0
+        // Make these static so that we can reuse device allocations across frames.
+        // It doesn't matter now, but useful for GPU backends.
+        static buffer_t srcBuf = { 0 };
+        static buffer_t dstBuf0 = { 0 };
+        static buffer_t dstBuf1 = { 0 };
+
+        srcBuf.host = srcChromaUVInterleavedPtr;
+        srcBuf.host_dirty = true;
+        srcBuf.extent[0] = 2 * srcChromaWidth;  // src is interleaved.
+        srcBuf.extent[1] = srcChromaHeight;
+        srcBuf.extent[2] = 0;
+        srcBuf.extent[3] = 0;
+        srcBuf.stride[0] = 1;
+        srcBuf.stride[1] = 2 * srcChromaWidth;
+        srcBuf.min[0] = 0;
+        srcBuf.min[1] = 0;
+        srcBuf.elem_size = 1;
+
+        dstBuf0.host = swapDstUV ? dstChromaVPtr : dstChromaUPtr;
+        dstBuf0.extent[0] = srcChromaWidth;  // src and dst width and height match.
+        dstBuf0.extent[1] = srcChromaHeight;
+        dstBuf0.extent[2] = 0;
+        dstBuf0.extent[3] = 0;
+        dstBuf0.stride[0] = 1;
+        dstBuf0.stride[1] = srcChromaWidth;
+        dstBuf0.min[0] = 0;
+        dstBuf0.min[1] = 0;
+        dstBuf0.elem_size = 1;
+
+        dstBuf1.host = swapDstUV ? dstChromaUPtr : dstChromaVPtr;
+        dstBuf1.extent[0] = srcChromaWidth;  // src and dst width and height match.
+        dstBuf1.extent[1] = srcChromaHeight;
+        dstBuf1.extent[2] = 0;
+        dstBuf1.extent[3] = 0;
+        dstBuf1.stride[0] = 1;
+        dstBuf1.stride[1] = srcChromaWidth;
+        dstBuf1.min[0] = 0;
+        dstBuf1.min[1] = 0;
+        dstBuf1.elem_size = 1;
+
+        // Use Halide to deinterleave the chroma channels.
+//        int err = deinterleave(&srcBuf, &dstBuf0, &dstBuf1);
+//        if (err != halide_error_code_success) {
+//            LOGE("deinterleave failed with error code: %d", err);
+//        }
+//        succeeded = (err != halide_error_code_success);
+#endif
+    }
 
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);

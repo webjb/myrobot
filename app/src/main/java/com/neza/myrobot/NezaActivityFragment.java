@@ -109,6 +109,7 @@ public class NezaActivityFragment extends Fragment
         ORIENTATIONS.append(Surface.ROTATION_180, 180);
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
     }
+    private static final Size DESIRED_IMAGE_READER_SIZE = new Size(1920, 1440);
 
     private AutoFitSurfaceView mSurfaceView;
     private Surface mSurface;
@@ -124,6 +125,7 @@ public class NezaActivityFragment extends Fragment
 	
     private RefCountedAutoCloseable<ImageReader> mImageReader;
     private CaptureRequest.Builder mPreviewRequestBuilder;
+    private BlockingStateCallback mDeviceCallback;
 
     private HandlerThread mBackgroundThread;
 	
@@ -321,10 +323,12 @@ public class NezaActivityFragment extends Fragment
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
-        view.findViewById(R.id.picture).setOnClickListener(this);
+//        view.findViewById(R.id.picture).setOnClickListener(this);
+        view.findViewById(R.id.toggle).setOnClickListener(this);
 
 		mSurfaceView = (AutoFitSurfaceView) view.findViewById(R.id.surface_view);
-		mSurfaceView.setAspectRatio(800,600);
+		mSurfaceView.setAspectRatio(DESIRED_IMAGE_READER_SIZE.getWidth(),
+                DESIRED_IMAGE_READER_SIZE.getHeight());
 	// This must be called here, before the initial buffer creation.
 	// Putting this inside surfaceCreated() is insufficient.
 		mSurfaceView.getHolder().setFormat(ImageFormat.YV12);
@@ -442,12 +446,12 @@ public class NezaActivityFragment extends Fragment
 					// Set up ImageReaders for JPEG and RAW outputs.  Place these in a reference
 					// counted wrapper to ensure they are only closed when all background tasks
 					// using them are finished.
-					//bob sang
+
 					Log.d(TAG, "bob Image size:"+largestYuv.getWidth() + "x" + largestYuv.getHeight());
 					if (mImageReader == null || mImageReader.getAndRetain() == null) {
 						mImageReader = new RefCountedAutoCloseable<>(
 //                                ImageReader.newInstance(largestYuv.getWidth(),largestYuv.getHeight(),ImageFormat.YUV_420_888,5));
-                          ImageReader.newInstance(800,600,ImageFormat.YUV_420_888,5));
+                          ImageReader.newInstance(DESIRED_IMAGE_READER_SIZE.getWidth(),DESIRED_IMAGE_READER_SIZE.getHeight(),ImageFormat.YUV_420_888,5));
 
 					}
 					mImageReader.get().setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
@@ -478,28 +482,36 @@ public class NezaActivityFragment extends Fragment
 
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        BlockingCameraManager blockingManager = new BlockingCameraManager(manager);
         try {
-            // Wait for any previously running session to finish.
-            if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
-                throw new RuntimeException("Time out waiting to lock camera opening.");
-            }
+            mDeviceCallback = new BlockingStateCallback() {
 
-            String cameraId;
-            Handler backgroundHandler;
-            synchronized (mStateLock) {
-                cameraId = mCameraId;
-                backgroundHandler = mBackgroundHandler;
-            }
+                @Override
+                public void onDisconnected(CameraDevice camera) {
+                    camera.close();
+                    mCameraDevice = null;
+                }
 
-            // Attempt to open the camera. mStateCallback will be called on the background handler's
-            // thread when this succeeds or fails.
-            manager.openCamera(cameraId, mStateCallback, backgroundHandler);
+                @Override
+                public void onError(CameraDevice camera, int error) {
+                    camera.close();
+                    mCameraDevice = null;
+                    Activity activity = getActivity();
+                    if (activity != null) {
+                        activity.finish();
+                    }
+                }
+            };
+
+            mCameraDevice = blockingManager.openCamera(mCameraId, mDeviceCallback,
+                    mBackgroundHandler);
+            createCameraPreviewSession();
+        } catch (BlockingOpenException|TimeoutRuntimeException e) {
+            showToast("Timed out opening camera.");
         } catch (CameraAccessException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
+            showToast("Failed to open camera."); // failed immediately.
         }
-    }
+     }
 
 
     private void closeCamera() {
