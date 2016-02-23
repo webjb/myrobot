@@ -3,6 +3,9 @@
 #include <android/bitmap.h>
 #include <android/native_window_jni.h>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/objdetect.hpp>
+
 #include <algorithm>
 #include <stdlib.h>
 #include <string.h>

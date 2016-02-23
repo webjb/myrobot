@@ -5,6 +5,15 @@ import android.media.Image;
 import android.media.Image.Plane;
 import android.view.Surface;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+
+
 import java.nio.ByteBuffer;
 
 public class JNIUtils {
@@ -13,7 +22,9 @@ public class JNIUtils {
     // Load native Halide shared library.
     static {
         System.loadLibrary("myrobot");
+        System.loadLibrary("opencv_java3");
     }
+
 
     /**
      * Use native code to copy the contents of src to dst. src must have format
@@ -21,6 +32,7 @@ public class JNIUtils {
      * {@code configureSurface()}.
      */
     public static boolean blit(Image src, Surface dst) {
+        Mat                    mRgba;
         if (src.getFormat() != ImageFormat.YUV_420_888) {
             throw new IllegalArgumentException("src must have format YUV_420_888.");
         }
@@ -33,6 +45,8 @@ public class JNIUtils {
                     "src chroma plane must have a pixel stride of 1 or 2: got "
                     + planes[1].getPixelStride());
         }
+        mRgba = new Mat();
+        mRgba.release();
         return blit(src.getWidth(), src.getHeight(), planes[0].getBuffer(),
                 planes[0].getRowStride(), planes[1].getBuffer(), planes[2].getBuffer(),
                 planes[1].getPixelStride(), planes[1].getRowStride(), dst);
