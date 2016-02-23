@@ -1,4 +1,4 @@
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -51,29 +51,39 @@ android:layout_height="match_parent">
         android:src="@drawable/ic_action_info" />
 
 </FrameLayout>
-
 </RelativeLayout>
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-android:orientation="horizontal">
 
-<com.neza.myrobot.AutoFitSurfaceView
-    android:id="@+id/surface_view"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content" />
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
 
-<LinearLayout
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
-    <Button
-        android:id="@+id/toggle"
+    <com.neza.myrobot.AutoFitSurfaceView
+        android:id="@+id/surface_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="@string/toggle" />
-</LinearLayout>
+        android:layout_alignParentStart="false"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="false" />
 
-</LinearLayout>
+    <FrameLayout
+        android:id="@+id/control"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:background="#00ffffff"
+        android:layout_alignParentEnd="false">
+
+
+    </FrameLayout>
+
+</RelativeLayout>
+<!--
+<Button
+android:id="@+id/toggle"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_gravity="center"
+android:text="@string/toggle" />
+-->

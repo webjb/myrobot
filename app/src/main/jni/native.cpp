@@ -72,15 +72,13 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     uint8_t *srcChromaVPtr = reinterpret_cast<uint8_t *>(
         env->GetDirectBufferAddress(srcChromaVByteBuffer));
 
-    LOGE("blit width=%d height=%d ...\n", srcWidth, srcHeight);
-    if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr ||
-        srcChromaVPtr == nullptr) {
+    LOGE("blit src: width=%d height=%d ...\n", srcWidth, srcHeight);
+    if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr || srcChromaVPtr == nullptr) {
         LOGE("blit NULL pointer ERROR");
         return false;
     }
 
-    // Check that if src chroma channels are interleaved if element stride is 2.
-    // Our Halide kernel "directly deinterleaves" UVUVUVUV --> UUUU, VVVV
+
     // to handle VUVUVUVU, just swap the destination pointers.
     uint8_t *srcChromaUVInterleavedPtr = nullptr;
     bool swapDstUV;
@@ -107,16 +105,17 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         ANativeWindow_release(win);
         return false;
     }
+    LOGE("bob dst: width=%d height=%d\n", buf.width, buf.height);
 
     ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
-
+/*
     if (buf.format != IMAGE_FORMAT_YV12) {
         LOGE("ANativeWindow buffer locked but its format was not YV12. %d\n", buf.format);
         ANativeWindow_unlockAndPost(win);
         ANativeWindow_release(win);
         return false;
     }
-
+*/
     if (!checkBufferSizesMatch(srcWidth, srcHeight, &buf)) {
         LOGE("ANativeWindow buffer locked but its size was %d x %d, expected "
                      "%d x %d", buf.width, buf.height, srcWidth, srcHeight);
@@ -124,7 +123,16 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         ANativeWindow_release(win);
         return false;
     }
+    uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
+    uint8_t p[4] = {0xff,0x00,0x00,0x00};
+    for( int i=0;i<buf.width; i++) {
+        for( int j=0; j<buf.height;j++)
+            for(int k=0; k<4;k++)
+                *dstLumaPtr++ = p[k];
+    }
+    //memcpy(dstLumaPtr, srcLumaPtr, dstLumaSizeBytes);
 
+#if 0
     int32_t srcChromaWidth = srcWidth / 2;
     int32_t srcChromaHeight = srcHeight / 2;
 
@@ -238,6 +246,7 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 //        succeeded = (err != halide_error_code_success);
 #endif
     }
+#endif
 
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);

@@ -19,10 +19,11 @@ package com.neza.myrobot;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.SurfaceView;
+import android.view.TextureView;
 
 import android.util.Log;
 
-public class AutoFitSurfaceView extends SurfaceView {
+public class AutoFitSurfaceView extends TextureView {
     private static final String TAG = "AutoFitSurfaceView";
     private int mRatioWidth = 0;
     private int mRatioHeight = 0;

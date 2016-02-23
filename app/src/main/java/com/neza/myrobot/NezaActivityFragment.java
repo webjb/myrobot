@@ -11,11 +11,13 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.RectF;
 
+import android.graphics.SurfaceTexture;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -128,21 +130,48 @@ public class NezaActivityFragment extends Fragment
     private BlockingStateCallback mDeviceCallback;
 
     private HandlerThread mBackgroundThread;
-	
+//    private final int mImageFormat = ImageFormat.FLEX_RGB_888;
+    private final int mImageFormat = ImageFormat.YUV_420_888;
+//    private final int mImageFormat = ImageFormat.RAW_SENSOR;
+
     CaptureCallbackWaiter mPreCaptureCallback = new CaptureCallbackWaiter();
+
+    /**
+     * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
+     * {@link TextureView}.
+     */
+    private final TextureView.SurfaceTextureListener mSurfaceTextureListener
+            = new TextureView.SurfaceTextureListener() {
+
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+            openCamera(width, height);
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
+            configureTransform(width, height);
+        }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+            return true;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+        }
+
+    };
+/*
 
     private final SurfaceHolder.Callback mSurfaceCallback
             = new SurfaceHolder.Callback() {
 
         @Override
-        public void surfaceCreated(SurfaceHolder holder) {
-            // The surface is ready. Make its buffers use the YV12 format and use the NDK to
-            // reconfigure its buffers to be of a different size than on screen (i.e., use the
-            // resolution of the ImageReader instead and use the hardware scaler to interpolate).
-            // (If you don't set it here, funny things happen when if you sleep the device).
             holder.setFormat(ImageFormat.YV12);
             mSurface = holder.getSurface();
-            openCamera();
+
         }
 
         @Override
@@ -165,7 +194,7 @@ public class NezaActivityFragment extends Fragment
         }
 
     };
-
+*/
     private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
         @Override
@@ -270,16 +299,26 @@ public class NezaActivityFragment extends Fragment
 
 	private void createCameraPreviewSession() {
 		try {
+            SurfaceTexture texture = mSurfaceView.getSurfaceTexture();
+            // We configure the size of default buffer to be the size of camera preview we want.
+            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+
+            // This is the output Surface we need to start preview.
+            Surface surface = new Surface(texture);
+            mSurface = surface;
 
 			// We set up a CaptureRequest.Builder with the output Surface.
 			mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-//			  mPreviewRequestBuilder.addTarget(surface);
+            //mPreviewRequestBuilder.addTarget(surface);
 			mPreviewRequestBuilder.addTarget(mImageReader.get().getSurface());
 
 			BlockingSessionCallback sessionCallback = new BlockingSessionCallback();
 
-			mCameraDevice.createCaptureSession(
-					Arrays.asList(mImageReader.get().getSurface()), sessionCallback, mBackgroundHandler);
+            List<Surface> outputSurfaces = new ArrayList<Surface>();
+            outputSurfaces.add(mImageReader.get().getSurface());
+            //outputSurfaces.add(surface);
+
+			mCameraDevice.createCaptureSession(outputSurfaces, sessionCallback, mBackgroundHandler);
 
 			try {
 				Log.d(TAG, "waiting on session.");
@@ -324,15 +363,15 @@ public class NezaActivityFragment extends Fragment
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
 //        view.findViewById(R.id.picture).setOnClickListener(this);
-        view.findViewById(R.id.toggle).setOnClickListener(this);
 
 		mSurfaceView = (AutoFitSurfaceView) view.findViewById(R.id.surface_view);
-		mSurfaceView.setAspectRatio(DESIRED_IMAGE_READER_SIZE.getWidth(),
-                DESIRED_IMAGE_READER_SIZE.getHeight());
+//		mSurfaceView.setAspectRatio(DESIRED_IMAGE_READER_SIZE.getWidth(),
+//                DESIRED_IMAGE_READER_SIZE.getHeight());
 	// This must be called here, before the initial buffer creation.
 	// Putting this inside surfaceCreated() is insufficient.
-		mSurfaceView.getHolder().setFormat(ImageFormat.YV12);
-	
+//		mSurfaceView.getHolder().setFormat(ImageFormat.YV12);
+        //view.findViewById(R.id.toggle).setOnClickListener(this);
+
 
     }
 
@@ -343,9 +382,20 @@ public class NezaActivityFragment extends Fragment
 
         // Make the SurfaceView VISIBLE so that on resume, surfaceCreated() is called,
         // and on pause, surfaceDestroyed() is called.
-        mSurfaceView.setVisibility(View.VISIBLE);
-        mSurfaceView.getHolder().addCallback(mSurfaceCallback);
-		
+//        mSurfaceView.setVisibility(View.VISIBLE);
+//        mSurfaceView.getHolder().addCallback(mSurfaceCallback);
+//        openCamera(mSurfaceView.getWidth(), mSurfaceView.getHeight());
+
+        if (mSurfaceView.isAvailable()) {
+            openCamera(mSurfaceView.getWidth(), mSurfaceView.getHeight());
+        } else {
+            mSurfaceView.setSurfaceTextureListener(mSurfaceTextureListener);
+        }
+//        if (mTextureView.isAvailable()) {
+//            configureTransform(mTextureView.getWidth(), mTextureView.getHeight());
+//        } else {
+//            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+//        }
 //        if (mOrientationListener != null && mOrientationListener.canDetectOrientation()) {
 //            mOrientationListener.enable();
 //        }
@@ -360,8 +410,8 @@ public class NezaActivityFragment extends Fragment
         stopBackgroundThread();
         // Make the SurfaceView GONE so that on resume, surfaceCreated() is called,
         // and on pause, surfaceDestroyed() is called.
-        mSurfaceView.getHolder().removeCallback(mSurfaceCallback);
-        mSurfaceView.setVisibility(View.GONE);
+//        mSurfaceView.getHolder().removeCallback(mSurfaceCallback);
+//        mSurfaceView.setVisibility(View.GONE);
 		
         super.onPause();
     }
@@ -415,7 +465,7 @@ public class NezaActivityFragment extends Fragment
         }
     }
 	
-	private boolean setUpCameraOutputs() {
+	private boolean setUpCameraOutputs(int width, int height) {
 		Activity activity = getActivity();
 		CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
 		if (manager == null) {
@@ -437,26 +487,94 @@ public class NezaActivityFragment extends Fragment
 				StreamConfigurationMap map = characteristics.get(
 						CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
+                int[] of = map.getOutputFormats();
+                for(int i=0;i<of.length;i++) {
+                    Log.d(TAG, "bob output:" + i+" "+ of[i]);
+                }
 				// For still image captures, we use the largest available size.
-				Size largestYuv = Collections.max(
-						Arrays.asList(map.getOutputSizes(ImageFormat.YUV_420_888)),
-						new CompareSizesByArea());
+				//Size largest = Collections.max(Arrays.asList(map.getOutputSizes(mImageFormat)),new CompareSizesByArea());
+                Size largest = new Size(800,600);
 
 				synchronized (mStateLock) {
 					// Set up ImageReaders for JPEG and RAW outputs.  Place these in a reference
 					// counted wrapper to ensure they are only closed when all background tasks
 					// using them are finished.
 
-					Log.d(TAG, "bob Image size:"+largestYuv.getWidth() + "x" + largestYuv.getHeight());
+					Log.d(TAG, "bob Image size:"+largest.getWidth() + "x" + largest.getHeight());
 					if (mImageReader == null || mImageReader.getAndRetain() == null) {
 						mImageReader = new RefCountedAutoCloseable<>(
 //                                ImageReader.newInstance(largestYuv.getWidth(),largestYuv.getHeight(),ImageFormat.YUV_420_888,5));
-                          ImageReader.newInstance(DESIRED_IMAGE_READER_SIZE.getWidth(),DESIRED_IMAGE_READER_SIZE.getHeight(),ImageFormat.YUV_420_888,5));
+                          ImageReader.newInstance(largest.getWidth(),largest.getHeight(),mImageFormat,5));
 
 					}
 					mImageReader.get().setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
 					mCharacteristics = characteristics;
+
+
+                    // Find out if we need to swap dimension to get the preview size relative to sensor
+                    // coordinate.
+                    int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+                    int sensorOrientation =
+                            characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+                    boolean swappedDimensions = false;
+                    switch (displayRotation) {
+                        case Surface.ROTATION_0:
+                        case Surface.ROTATION_180:
+                            if (sensorOrientation == 90 || sensorOrientation == 270) {
+                                swappedDimensions = true;
+                            }
+                            break;
+                        case Surface.ROTATION_90:
+                        case Surface.ROTATION_270:
+                            if (sensorOrientation == 0 || sensorOrientation == 180) {
+                                swappedDimensions = true;
+                            }
+                            break;
+                        default:
+                            Log.e(TAG, "Display rotation is invalid: " + displayRotation);
+                    }
+
+                    Point displaySize = new Point();
+                    activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
+                    int rotatedPreviewWidth = width;
+                    int rotatedPreviewHeight = height;
+                    int maxPreviewWidth = displaySize.x;
+                    int maxPreviewHeight = displaySize.y;
+
+                    if (swappedDimensions) {
+                        rotatedPreviewWidth = height;
+                        rotatedPreviewHeight = width;
+                        maxPreviewWidth = displaySize.y;
+                        maxPreviewHeight = displaySize.x;
+                    }
+
+                    if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
+                        maxPreviewWidth = MAX_PREVIEW_WIDTH;
+                    }
+
+                    if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
+                        maxPreviewHeight = MAX_PREVIEW_HEIGHT;
+                    }
+
+                    // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
+                    // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
+                    // garbage capture data.
+                    mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+                            rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
+                            maxPreviewHeight, largest);
+
+                    // We fit the aspect ratio of TextureView to the size of preview we picked.
+                    int orientation = getResources().getConfiguration().orientation;
+                    if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                        mSurfaceView.setAspectRatio(
+                                mPreviewSize.getWidth(), mPreviewSize.getHeight());
+                    } else {
+                        mSurfaceView.setAspectRatio(
+                                mPreviewSize.getHeight(), mPreviewSize.getWidth());
+                    }
+                    Log.d(TAG, "bob PreviewSize: "+mPreviewSize.getWidth() + "x" + mPreviewSize.getHeight());
+
 					mCameraId = cameraId;
 				}
 				return true;
@@ -471,8 +589,41 @@ public class NezaActivityFragment extends Fragment
 		return false;
 	}
 
-    private void openCamera() {
-        if (!setUpCameraOutputs()) {
+    /**
+     * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
+     * This method should be called after the camera preview size is determined in
+     * setUpCameraOutputs and also the size of `mTextureView` is fixed.
+     *
+     * @param viewWidth  The width of `mTextureView`
+     * @param viewHeight The height of `mTextureView`
+     */
+    private void configureTransform(int viewWidth, int viewHeight) {
+        Activity activity = getActivity();
+        if (null == mSurfaceView || null == mPreviewSize || null == activity) {
+            return;
+        }
+        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        Matrix matrix = new Matrix();
+        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+        RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
+        float centerX = viewRect.centerX();
+        float centerY = viewRect.centerY();
+        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+            float scale = Math.max(
+                    (float) viewHeight / mPreviewSize.getHeight(),
+                    (float) viewWidth / mPreviewSize.getWidth());
+            matrix.postScale(scale, scale, centerX, centerY);
+            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+        } else if (Surface.ROTATION_180 == rotation) {
+            matrix.postRotate(180, centerX, centerY);
+        }
+        mSurfaceView.setTransform(matrix);
+    }
+
+    private void openCamera(int width, int height) {
+        if (!setUpCameraOutputs(width, height)) {
             return;
         }
         if (!hasAllPermissionsGranted()) {
@@ -503,8 +654,7 @@ public class NezaActivityFragment extends Fragment
                 }
             };
 
-            mCameraDevice = blockingManager.openCamera(mCameraId, mDeviceCallback,
-                    mBackgroundHandler);
+            mCameraDevice = blockingManager.openCamera(mCameraId, mDeviceCallback,mBackgroundHandler);
             createCameraPreviewSession();
         } catch (BlockingOpenException|TimeoutRuntimeException e) {
             showToast("Timed out opening camera.");
