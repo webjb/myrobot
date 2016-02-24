@@ -81,11 +81,16 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         env->GetDirectBufferAddress(srcChromaVByteBuffer));
 
     LOGE("blit src: width=%d height=%d ...\n", srcWidth, srcHeight);
+    Mat mYuv = *(Mat*)srcLumaPtr;
+//    int sz[] = {100, 100, 100};
+//    Mat bigCube(3, sz, CV_8U, Scalar::all(0));
+
+
     if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr || srcChromaVPtr == nullptr) {
         LOGE("blit NULL pointer ERROR");
         return false;
     }
-    Mat * mGray = (Mat*)srcLumaPtr;
+
 
     uint8_t *srcChromaUVInterleavedPtr = nullptr;
     bool swapDstUV;
@@ -131,12 +136,18 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         return false;
     }
     uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
+
+    Mat mRgb =*(Mat*)dstLumaPtr;
+
+    cv::cvtColor(mYuv, mRgb, CV_YCrCb2RGB);
+#if 0
     uint8_t p[4] = {0xff,0x00,0x00,0x00};
     for( int i=0;i<buf.width; i++) {
         for( int j=0; j<buf.height;j++)
             for(int k=0; k<4;k++)
                 *dstLumaPtr++ = p[k];
     }
+#endif
     //memcpy(dstLumaPtr, srcLumaPtr, dstLumaSizeBytes);
 
 #if 0
@@ -257,6 +268,7 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);
+
     LOGE("blit done");
     return 0;
 }

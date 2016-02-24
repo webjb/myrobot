@@ -30,35 +30,46 @@ model {
 
         defaultConfig.with {
             applicationId = "com.neza.myrobot"
-            minSdkVersion.apiLevel = 23
+            minSdkVersion.apiLevel = 13
             targetSdkVersion.apiLevel = 23
+            versionCode = 1
+            versionName = "1.0"
+
         }
     }
 
     android.ndk {
         moduleName = "myrobot"
         cppFlags.add("-Werror")
+        cppFlags.add("-std=c++11") // Add provisions to allow C++11 functionality
+        cppFlags.add("-fexceptions")
+
         //CFlags.add("-I${file("-std=c11 -I${project.buildDir}/../OpenCV-3.1.0-android-sdk/OpenCV-android-sdk/sdk/native/jni/include")}".toString())
 //        cppFlags += "-I${file("src/native2/jni/include")}".toString()
         cppFlags.add("-I${file("src/main/jni/native/jni/include")}".toString())
         CFlags.add("-I${file("src/main/jni/native/jni/include")}".toString())
+
+//        cppFlags.add("-I${file("c:\\sang\\android\\OpenCV-3.1.0-android-sdk\\OpenCV-android-sdk\\sdk\\native\\jni\\include")}".toString())
+//        CFlags.add("-I${file("c:\\sang\\android\\OpenCV-3.1.0-android-sdk\\OpenCV-android-sdk\\sdk\\native\\jni\\include")}".toString())
+
 //        cppFlags += "-I${file("-I${project.buildDir}/src/main/jni")}".toString()
-//        ldLibs.add("-L${file("src/main/jni/native/libs")}".toString())
-        ldLibs.addAll(["log", "GLESv2", "android", "dl", "z"])
-        stl = "c++_static"
-//        stl = "gnustl_shared"
+//        ldLibs.add("-L${file("src/main/jniLibs/armeabi-v7a")}".toString())
+//        ldLibs.addAll(["log", "GLESv2", "android", "dl", "z"])
+        ldLibs.addAll(["android", "EGL", "GLESv2", "dl", "log", "z"])
+//        stl = "c++_static"
+        stl = "gnustl_shared"
     }
 
     android.sources {
             main {
-                java {
-                    source {
-                        srcDirs 'src/main/java'
-                    }
-                }
+//                java {
+//                    source {
+//                        srcDirs 'src/main/java'
+//                    }
+//                }
                 jni {
                     source {
-                        srcDirs 'src/main/jni'
+                        srcDirs += ['src/main/jni']
                     }
                 }
             }
@@ -79,7 +90,6 @@ model {
                 File curDir = file('./')
                 curDir = file(curDir.absolutePath)
                 String libsDir = curDir.absolutePath + "\\src\\main\\jniLibs\\armeabi\\"
-
                 ldLibs.add(libsDir + "libopencv_core.a")
                 ldLibs.add(libsDir + "libopencv_highgui.a")
                 ldLibs.add(libsDir + "libopencv_imgproc.a")
@@ -95,26 +105,26 @@ model {
                 File curDir = file('./')
                 curDir = file(curDir.absolutePath)
                 String libsDir = curDir.absolutePath + "\\src\\main\\jniLibs\\armeabi-v7a\\"
+
                 ldLibs.add(libsDir + "libopencv_core.a")
                 ldLibs.add(libsDir + "libopencv_highgui.a")
                 ldLibs.add(libsDir + "libopencv_imgproc.a")
                 ldLibs.add(libsDir + "libopencv_java3.so")
                 ldLibs.add(libsDir + "libopencv_ml.a")
                 ldLibs.add(libsDir + "libopencv_ts.a")
-
             }
         }
-        create("arm8") {
-            ndk.abiFilters.add("arm64-v8a")
-        }
-        create("x86-32") {
-            ndk.abiFilters.add("x86")
-        }
+//        create("arm8") {
+//            ndk.abiFilters.add("arm64-v8a")
+//        }
+//        create("x86-32") {
+//            ndk.abiFilters.add("x86")
+//        }
         // for detailed abiFilter descriptions, refer to "Supported ABIs" @
         // https://developer.android.com/ndk/guides/abis.html#sa
 
         // build one including all cpu architectures
-        create("all")
+//        create("all")
     }
 }
 
