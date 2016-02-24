@@ -38,9 +38,31 @@ model {
     android.ndk {
         moduleName = "myrobot"
         cppFlags.add("-Werror")
-        ldLibs.addAll(["log", "GLESv2", "android"])
+        //CFlags.add("-I${file("-std=c11 -I${project.buildDir}/../OpenCV-3.1.0-android-sdk/OpenCV-android-sdk/sdk/native/jni/include")}".toString())
+//        cppFlags += "-I${file("src/native2/jni/include")}".toString()
+        cppFlags.add("-I${file("src/main/jni/native/jni/include")}".toString())
+        CFlags.add("-I${file("src/main/jni/native/jni/include")}".toString())
+//        cppFlags += "-I${file("-I${project.buildDir}/src/main/jni")}".toString()
+//        ldLibs.add("-L${file("src/main/jni/native/libs")}".toString())
+        ldLibs.addAll(["log", "GLESv2", "android", "dl", "z"])
         stl = "c++_static"
+//        stl = "gnustl_shared"
     }
+
+    android.sources {
+            main {
+                java {
+                    source {
+                        srcDirs 'src/main/java'
+                    }
+                }
+                jni {
+                    source {
+                        srcDirs 'src/main/jni'
+                    }
+                }
+            }
+        }
 
     android.buildTypes {
         release {
@@ -50,8 +72,37 @@ model {
     }
 
     android.productFlavors {
-        create("arm7") {
-            ndk.abiFilters.add("armeabi-v7a")
+        create("arm") {
+            ndk.with {
+                abiFilters.add("armeabi")
+
+                File curDir = file('./')
+                curDir = file(curDir.absolutePath)
+                String libsDir = curDir.absolutePath + "\\src\\main\\jniLibs\\armeabi\\"
+
+                ldLibs.add(libsDir + "libopencv_core.a")
+                ldLibs.add(libsDir + "libopencv_highgui.a")
+                ldLibs.add(libsDir + "libopencv_imgproc.a")
+                ldLibs.add(libsDir + "libopencv_java3.so")
+                ldLibs.add(libsDir + "libopencv_ml.a")
+
+            }
+        }
+        create("armv7") {
+            ndk.with {
+                abiFilters.add("armeabi-v7a")
+
+                File curDir = file('./')
+                curDir = file(curDir.absolutePath)
+                String libsDir = curDir.absolutePath + "\\src\\main\\jniLibs\\armeabi-v7a\\"
+                ldLibs.add(libsDir + "libopencv_core.a")
+                ldLibs.add(libsDir + "libopencv_highgui.a")
+                ldLibs.add(libsDir + "libopencv_imgproc.a")
+                ldLibs.add(libsDir + "libopencv_java3.so")
+                ldLibs.add(libsDir + "libopencv_ml.a")
+                ldLibs.add(libsDir + "libopencv_ts.a")
+
+            }
         }
         create("arm8") {
             ndk.abiFilters.add("arm64-v8a")

@@ -4,12 +4,17 @@
 #include <android/native_window_jni.h>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/objdetect.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/features2d/features2d.hpp>
 
 #include <algorithm>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+using namespace std;
+using namespace cv;
 
 #ifndef int64_t
 #define int64_t long long
@@ -80,9 +85,8 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         LOGE("blit NULL pointer ERROR");
         return false;
     }
+    Mat * mGray = (Mat*)srcLumaPtr;
 
-
-    // to handle VUVUVUVU, just swap the destination pointers.
     uint8_t *srcChromaUVInterleavedPtr = nullptr;
     bool swapDstUV;
     if (srcChromaElementStrideBytes == 2) {
