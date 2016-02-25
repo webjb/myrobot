@@ -63,15 +63,15 @@ public class AutoFitSurfaceView extends TextureView {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
         if (0 == mRatioWidth || 0 == mRatioHeight) {
-            Log.d(TAG, String.format("aspect ratio is 0 x 0 (uninitialized), setting measured"
+            Log.d(TAG, String.format("bob aspect ratio is 0 x 0 (uninitialized), setting measured"
                     + " dimension to: %d x %d", width, height));
             setMeasuredDimension(width, height);
         } else {
             if (width < height * mRatioWidth / mRatioHeight) {
-                Log.d(TAG, String.format("setting measured dimension to %d x %d", width, height));
+                Log.d(TAG, String.format("bob setting measured dimension to %d x %d", width, width * mRatioHeight / mRatioWidth));
                 setMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
             } else {
-                Log.d(TAG, String.format("setting measured dimension to %d x %d", width, height));
+                Log.d(TAG, String.format("bob setting measured dimension to %d x %d", height * mRatioWidth / mRatioHeight, height));
                 setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
             }
         }

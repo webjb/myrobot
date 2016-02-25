@@ -30,7 +30,7 @@ model {
 
         defaultConfig.with {
             applicationId = "com.neza.myrobot"
-            minSdkVersion.apiLevel = 13
+            minSdkVersion.apiLevel = 23
             targetSdkVersion.apiLevel = 23
             versionCode = 1
             versionName = "1.0"
