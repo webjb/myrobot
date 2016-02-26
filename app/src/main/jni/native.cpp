@@ -138,7 +138,14 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     }
     uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
     cv::Mat mRgba(srcHeight, srcWidth, CV_8UC4, dstLumaPtr);
+//    cv::Mat img;
+//    cv::flip(mYuv, mYuv, 0);
+
+//    img.create(mYuv.size(), mYuv.type());
     cv::cvtColor(mYuv, mRgba, CV_YUV2RGBA_NV21);
+//    cv::transpose(img, img);
+    cv::flip(mRgba, mRgba, 0);
+//    cv::transpose(img, mRgba);
 
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);

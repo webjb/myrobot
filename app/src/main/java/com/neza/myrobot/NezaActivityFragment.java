@@ -277,7 +277,7 @@ public class NezaActivityFragment extends Fragment
         @Override
         public void onImageAvailable(ImageReader reader) {
             //bob sang
-            Log.d(TAG, "bob image avail RAW");
+            //Log.d(TAG, "bob image avail RAW");
             Image image;
 
             try {
