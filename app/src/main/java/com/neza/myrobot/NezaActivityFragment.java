@@ -103,6 +103,9 @@ public class NezaActivityFragment extends Fragment
     private static final int MAX_PREVIEW_HEIGHT = 1080;
     private static final double ASPECT_RATIO_TOLERANCE = 0.005;
 
+    private Size mCameraSize = new Size(800,600);
+//    private Size mCameraSize = new Size(1280,960);
+
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     static {
@@ -111,7 +114,6 @@ public class NezaActivityFragment extends Fragment
         ORIENTATIONS.append(Surface.ROTATION_180, 180);
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
     }
-    private static final Size DESIRED_IMAGE_READER_SIZE = new Size(1920, 1440);
 
     private AutoFitSurfaceView mSurfaceView;
     private Surface mSurface;
@@ -285,8 +287,11 @@ public class NezaActivityFragment extends Fragment
                 if( image == null) {
                     return;
                 }
+                int fmt = reader.getImageFormat();
+                Log.d(TAG,"bob image fmt:"+ fmt);
+
                 JNIUtils.blit(image, mSurface);
-                //JNIUtils.test();
+                //JNIUtils.blitraw(image, mSurface);
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Too many images queued for saving, dropping image for request: ");
 //                        entry.getKey());
@@ -496,87 +501,29 @@ public class NezaActivityFragment extends Fragment
                 for(int i=0;i<of.length;i++) {
                     Log.d(TAG, "bob output:" + i+" "+ of[i]);
                 }
-				// For still image captures, we use the largest available size.
+				Size[] sizes = map.getOutputSizes(mImageFormat);
+                for(int i=0;i<sizes.length;i++)
+                {
+                    Log.d(TAG,"bob OutputSizes:"+i+" " + sizes[i].getWidth() + " x "+sizes[i].getHeight());
+                }
+
 				//Size largest = Collections.max(Arrays.asList(map.getOutputSizes(mImageFormat)),new CompareSizesByArea());
-                Size largest = new Size(1080,1440);
+                //Size largest = new Size(1080,1440);
+                //mCameraSize = largest;
 
 				synchronized (mStateLock) {
 					// Set up ImageReaders for JPEG and RAW outputs.  Place these in a reference
 					// counted wrapper to ensure they are only closed when all background tasks
 					// using them are finished.
 
-					Log.d(TAG, "bob Image size:"+largest.getWidth() + "x" + largest.getHeight());
+                    Log.d(TAG, "bob Image size:" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
 					if (mImageReader == null || mImageReader.getAndRetain() == null) {
 						mImageReader = new RefCountedAutoCloseable<>(
-//                                ImageReader.newInstance(largestYuv.getWidth(),largestYuv.getHeight(),ImageFormat.YUV_420_888,5));
-                          ImageReader.newInstance(largest.getWidth(),largest.getHeight(),mImageFormat,5));
-
+                          ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(),mImageFormat,5));
 					}
 					mImageReader.get().setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
                     mCharacteristics = characteristics;
-/*
-                    // Find out if we need to swap dimension to get the preview size relative to sensor
-                    // coordinate.
-                    int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-                    int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-                    boolean swappedDimensions = false;
-                    switch (displayRotation) {
-                        case Surface.ROTATION_0:
-                        case Surface.ROTATION_180:
-                            if (sensorOrientation == 90 || sensorOrientation == 270) {
-                                swappedDimensions = true;
-                            }
-                            break;
-                        case Surface.ROTATION_90:
-                        case Surface.ROTATION_270:
-                            if (sensorOrientation == 0 || sensorOrientation == 180) {
-                                swappedDimensions = true;
-                            }
-                            break;
-                        default:
-                            Log.e(TAG, "Display rotation is invalid: " + displayRotation);
-                    }
 
-                    Point displaySize = new Point();
-                    activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
-                    int rotatedPreviewWidth = width;
-                    int rotatedPreviewHeight = height;
-                    int maxPreviewWidth = displaySize.x;
-                    int maxPreviewHeight = displaySize.y;
-
-                    if (swappedDimensions) {
-                        rotatedPreviewWidth = height;
-                        rotatedPreviewHeight = width;
-                        maxPreviewWidth = displaySize.y;
-                        maxPreviewHeight = displaySize.x;
-                    }
-
-                    if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
-                        maxPreviewWidth = MAX_PREVIEW_WIDTH;
-                    }
-
-                    if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
-                        maxPreviewHeight = MAX_PREVIEW_HEIGHT;
-                    }
-
-                    // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
-                    // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
-                    // garbage capture data.
-                    mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                            rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                            maxPreviewHeight, largest);
-
-                    // We fit the aspect ratio of TextureView to the size of preview we picked.
-                    int orientation = getResources().getConfiguration().orientation;
-                    if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                        mSurfaceView.setAspectRatio(
-                                mPreviewSize.getWidth(), mPreviewSize.getHeight());
-                    } else {
-                        mSurfaceView.setAspectRatio(
-                                mPreviewSize.getHeight(), mPreviewSize.getWidth());
-                    }
-                    Log.d(TAG, "bob PreviewSize: "+mPreviewSize.getWidth() + "x" + mPreviewSize.getHeight());
-*/
 					mCameraId = cameraId;
 				}
 				return true;
@@ -611,8 +558,7 @@ public class NezaActivityFragment extends Fragment
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
             // For still image captures, we always use the largest available size.
-            Size largestJpeg = Collections.max(Arrays.asList(map.getOutputSizes(mImageFormat)),
-                    new CompareSizesByArea());
+//            Size largestJpeg = Collections.max(Arrays.asList(map.getOutputSizes(mImageFormat)), new CompareSizesByArea());
 
             // Find the rotation of the device relative to the native device orientation.
             int deviceRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -631,7 +577,9 @@ public class NezaActivityFragment extends Fragment
             int maxPreviewWidth = displaySize.x;
             int maxPreviewHeight = displaySize.y;
 
+            //swappedDimensions = false;
             if (swappedDimensions) {
+                Log.d(TAG, "bob swapped "+ swappedDimensions);
                 rotatedViewWidth = viewHeight;
                 rotatedViewHeight = viewWidth;
                 maxPreviewWidth = displaySize.y;
@@ -650,14 +598,12 @@ public class NezaActivityFragment extends Fragment
             // Find the best preview size for these view dimensions and configured JPEG size.
             Size previewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                     rotatedViewWidth, rotatedViewHeight, maxPreviewWidth, maxPreviewHeight,
-                    largestJpeg);
+                    mCameraSize);
 
             if (swappedDimensions) {
-                mSurfaceView.setAspectRatio(
-                        previewSize.getHeight(), previewSize.getWidth());
+                mSurfaceView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
             } else {
-                mSurfaceView.setAspectRatio(
-                        previewSize.getWidth(), previewSize.getHeight());
+                mSurfaceView.setAspectRatio(previewSize.getWidth(), previewSize.getHeight());
             }
 
             // Find rotation of device in degrees (reverse device orientation for front-facing

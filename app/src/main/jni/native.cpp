@@ -80,10 +80,23 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     uint8_t *srcChromaVPtr = reinterpret_cast<uint8_t *>(
         env->GetDirectBufferAddress(srcChromaVByteBuffer));
 
-    //LOGE("blit src: width=%d height=%d 777.\n", srcWidth, srcHeight);
+    uint8_t * srcBufs[3];
+    srcBufs[0] = srcLumaPtr;
+    srcBufs[1] = srcChromaUPtr;
+    srcBufs[2] = srcChromaVPtr;
+
+    int strides[3];
+    strides[0] = srcLumaRowStrideBytes;
+    strides[1] = srcChromaElementStrideBytes;
+    strides[2] = srcChromaRowStrideBytes;
+
+
+
+    LOGE("blit src: width=%d height=%d 777.\n", srcWidth, srcHeight);
 
     //Mat mYuv = *(Mat*)srcLumaPtr;
-    cv::Mat mYuv(srcHeight + srcHeight/2, srcWidth, CV_8UC1, srcLumaPtr);
+//    cv::Mat mYuv(srcWidth, srcHeight + srcHeight/2, CV_8UC1, srcLumaPtr);
+    cv::Mat mYuv(srcHeight + srcHeight/2,srcWidth, CV_8UC1, srcLumaPtr);
     int sz[] = {100, 100, 100};
     Mat bigCube(3, sz, CV_8U, Scalar::all(0));
 
@@ -113,22 +126,21 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 
     ANativeWindow_Buffer buf;
 
+//    ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
+    ANativeWindow_setBuffersGeometry(win, srcHeight, srcWidth, 0 /*format unchanged*/);
+
     if (int32_t err = ANativeWindow_lock(win, &buf, NULL)) {
         LOGE("ANativeWindow_lock failed with error code %d\n", err);
         ANativeWindow_release(win);
         return false;
     }
-    LOGE("bob dst: width=%d height=%d\n", buf.width, buf.height);
+    int winHeight = ANativeWindow_getHeight(win);
+    int winWidth = ANativeWindow_getWidth(win);
 
-    ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
+    LOGE("bob dst: width=%d height=%d winWidth=%d winHeight=%d format:%d stride:%d\n", buf.width, buf.height, winWidth, winHeight, buf.format, buf.stride);
+
+//    ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
 /*
-    if (buf.format != IMAGE_FORMAT_YV12) {
-        LOGE("ANativeWindow buffer locked but its format was not YV12. %d\n", buf.format);
-        ANativeWindow_unlockAndPost(win);
-        ANativeWindow_release(win);
-        return false;
-    }
-*/
     if (!checkBufferSizesMatch(srcWidth, srcHeight, &buf)) {
         LOGE("ANativeWindow buffer locked but its size was %d x %d, expected "
                      "%d x %d", buf.width, buf.height, srcWidth, srcHeight);
@@ -136,16 +148,41 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         ANativeWindow_release(win);
         return false;
     }
+*/
+
     uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
-    cv::Mat mRgba(srcHeight, srcWidth, CV_8UC4, dstLumaPtr);
+//    memset(dstLumaPtr, 0, buf.height * buf.width*4);
+
+//    cv::Mat mRgba(srcHeight, srcWidth, CV_8UC4, dstLumaPtr);
+
+    cv::Mat mr(srcHeight, buf.stride, CV_8UC4);
+    cv::cvtColor(mYuv, mr, CV_YUV2RGBA_NV21);
+    cv::Mat mRgba(srcWidth, buf.stride, CV_8UC4, dstLumaPtr);
+
+
 //    cv::Mat img;
-//    cv::flip(mYuv, mYuv, 0);
+//    cv::flip(mr, mr, 0);
 
 //    img.create(mYuv.size(), mYuv.type());
-    cv::cvtColor(mYuv, mRgba, CV_YUV2RGBA_NV21);
-//    cv::transpose(img, img);
-    cv::flip(mRgba, mRgba, 0);
-//    cv::transpose(img, mRgba);
+    cv::cvtColor(mYuv, mr, CV_YUV2RGBA_NV21);
+    LOGE("bob mr: %dx %d type:%d", mr.rows, mr.cols, mr.type());
+
+    cv::Mat mm;
+
+    cv::transpose(mr, mm);
+    LOGE("bob mm:%d x %d", mm.rows, mm.cols);
+    cv::flip(mm, mRgba, 1);
+    LOGE("bob mm2:%d x %d type:%d mrgba:%d x %d type:%d", mm.rows, mm.cols, mm.type(), mRgba.rows, mRgba.cols, mRgba.type());
+//    mRgba = mm;
+//    cv::transpose(mr, mRgba);
+
+    Point p1(100,100);
+    Point p2(300,300);
+    cv::rectangle(mRgba,p1,p2,Scalar(255,255,255));
+
+    cv::rectangle(mRgba,Point(10,10),Point(1079,1439),Scalar(255,255,255));
+    cv::rectangle(mRgba,Point(100,100),Point(900,900),Scalar(255,255,255));
+
 
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);
@@ -158,6 +195,46 @@ extern "C" {
 JNIEXPORT void JNICALL
 Java_com_neza_myrobot_JNIUtils_test(JNIEnv *env, jobject assetManager) {
 
+}
+}
+
+extern "C" {
+JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blitraw(
+        JNIEnv *env, jobject obj, jint srcWidth, jint srcHeight,
+        jlong srcYuv, jobject dstSurface) {
+
+
+    // Check that if src chroma channels are interleaved if element stride is 2.
+    // Our Halide kernel "directly deinterleaves" UVUVUVUV --> UUUU, VVVV
+    // to handle VUVUVUVU, just swap the destination pointers.
+
+    Mat mYuv = *((Mat*)srcYuv);
+
+    //cv::Mat mYuv(srcHeight,srcWidth, CV_8UC3, srcLumaPtr);
+
+    ANativeWindow *win = ANativeWindow_fromSurface(env, dstSurface);
+    ANativeWindow_acquire(win);
+
+    ANativeWindow_Buffer buf;
+
+    if (int32_t err = ANativeWindow_lock(win, &buf, NULL)) {
+        LOGE("ANativeWindow_lock failed with error code %d\n", err);
+        ANativeWindow_release(win);
+        return false;
+    }
+    LOGE("bob dst: width=%d height=%d\n", buf.width, buf.height);
+
+    ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
+    uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
+    cv::Mat mRgba(srcHeight, srcWidth, CV_8UC4, dstLumaPtr);
+
+    cv::cvtColor(mYuv, mRgba, CV_YUV2RGBA_NV21);
+//    mRgba = mYuv;
+//    cv::transpose(mYuv, mRgba);
+
+    ANativeWindow_unlockAndPost(win);
+    ANativeWindow_release(win);
+    return 0;
 }
 }
 
@@ -194,7 +271,7 @@ JNIEXPORT bool JNICALL Java_com_example_hogcamera_JNIUtils_edgeDetect(
     }
 
     if (buf.format != IMAGE_FORMAT_YV12) {
-        LOGE("ANativeWindow buffer locked but its format was not YV12.");
+        LOGE("bob ANativeWindow buffer locked but its format was not YV12.");
         ANativeWindow_unlockAndPost(win);
         ANativeWindow_release(win);
         return false;
