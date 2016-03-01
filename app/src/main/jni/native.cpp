@@ -80,31 +80,17 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     uint8_t *srcChromaVPtr = reinterpret_cast<uint8_t *>(
         env->GetDirectBufferAddress(srcChromaVByteBuffer));
 
-    uint8_t * srcBufs[3];
-    srcBufs[0] = srcLumaPtr;
-    srcBufs[1] = srcChromaUPtr;
-    srcBufs[2] = srcChromaVPtr;
+    int dstWidth;
+    int dstHeight;
 
-    int strides[3];
-    strides[0] = srcLumaRowStrideBytes;
-    strides[1] = srcChromaElementStrideBytes;
-    strides[2] = srcChromaRowStrideBytes;
+    LOGE("blit src: width=%d height=%d\n", srcWidth, srcHeight);
 
-
-
-    LOGE("blit src: width=%d height=%d 777.\n", srcWidth, srcHeight);
-
-    //Mat mYuv = *(Mat*)srcLumaPtr;
-//    cv::Mat mYuv(srcWidth, srcHeight + srcHeight/2, CV_8UC1, srcLumaPtr);
     cv::Mat mYuv(srcHeight + srcHeight/2,srcWidth, CV_8UC1, srcLumaPtr);
-    int sz[] = {100, 100, 100};
-    Mat bigCube(3, sz, CV_8U, Scalar::all(0));
 
     if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr || srcChromaVPtr == nullptr) {
         LOGE("blit NULL pointer ERROR");
         return false;
     }
-
 
     uint8_t *srcChromaUVInterleavedPtr = nullptr;
     bool swapDstUV;
@@ -123,11 +109,15 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 
     ANativeWindow *win = ANativeWindow_fromSurface(env, dstSurface);
     ANativeWindow_acquire(win);
+    LOGE("blit 111");
 
     ANativeWindow_Buffer buf;
+    dstWidth = srcHeight;
+    dstHeight = srcWidth;
+//    dstWidth = srcWidth;
+//    dstHeight = srcHeight;
 
-//    ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
-    ANativeWindow_setBuffersGeometry(win, srcHeight, srcWidth, 0 /*format unchanged*/);
+    ANativeWindow_setBuffersGeometry(win, dstWidth, dstHeight, 0 /*format unchanged*/);
 
     if (int32_t err = ANativeWindow_lock(win, &buf, NULL)) {
         LOGE("ANativeWindow_lock failed with error code %d\n", err);
@@ -137,49 +127,44 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     int winHeight = ANativeWindow_getHeight(win);
     int winWidth = ANativeWindow_getWidth(win);
 
-    LOGE("bob dst: width=%d height=%d winWidth=%d winHeight=%d format:%d stride:%d\n", buf.width, buf.height, winWidth, winHeight, buf.format, buf.stride);
-
-//    ANativeWindow_setBuffersGeometry(win, srcWidth, srcHeight, 0 /*format unchanged*/);
-/*
-    if (!checkBufferSizesMatch(srcWidth, srcHeight, &buf)) {
-        LOGE("ANativeWindow buffer locked but its size was %d x %d, expected "
-                     "%d x %d", buf.width, buf.height, srcWidth, srcHeight);
-        ANativeWindow_unlockAndPost(win);
-        ANativeWindow_release(win);
-        return false;
-    }
-*/
+//    LOGE("bob dst: width=%d height=%d winWidth=%d winHeight=%d format:%d stride:%d\n", buf.width, buf.height, winWidth, winHeight, buf.format, buf.stride);
 
     uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
-//    memset(dstLumaPtr, 0, buf.height * buf.width*4);
-
-//    cv::Mat mRgba(srcHeight, srcWidth, CV_8UC4, dstLumaPtr);
-
-    cv::Mat mr(srcHeight, buf.stride, CV_8UC4);
+    LOGE("blit 111 5555");
+    Mat mr(srcHeight, srcWidth, CV_8UC4);
     cv::cvtColor(mYuv, mr, CV_YUV2RGBA_NV21);
-    cv::Mat mRgba(srcWidth, buf.stride, CV_8UC4, dstLumaPtr);
+    LOGE("blit 222");
+    cv::Mat mRgba(dstHeight, buf.stride, CV_8UC4, dstLumaPtr);
 
-
-//    cv::Mat img;
-//    cv::flip(mr, mr, 0);
-
-//    img.create(mYuv.size(), mYuv.type());
-    cv::cvtColor(mYuv, mr, CV_YUV2RGBA_NV21);
-    LOGE("bob mr: %dx %d type:%d", mr.rows, mr.cols, mr.type());
-
-    cv::Mat mm;
+    cv::Mat mm(dstHeight, dstWidth, CV_8UC4);
 
     cv::transpose(mr, mm);
-    LOGE("bob mm:%d x %d", mm.rows, mm.cols);
-    cv::flip(mm, mRgba, 1);
-    LOGE("bob mm2:%d x %d type:%d mrgba:%d x %d type:%d", mm.rows, mm.cols, mm.type(), mRgba.rows, mRgba.cols, mRgba.type());
-//    mRgba = mm;
-//    cv::transpose(mr, mRgba);
+//    LOGE("bob mm:%d x %d", mm.rows, mm.cols);
+    cv::flip(mm, mm, 1);
+    LOGE("blit 333");
+    uchar * dbuf;
+    uchar * sbuf;
+    dbuf = mRgba.data;
+    sbuf = mm.data;
+    int i;
+    int j;
+    int k;
+    for(i=0;i<mm.rows;i++) {
+        dbuf = mRgba.data + i * buf.stride * 4;
+        memcpy(dbuf, sbuf, mm.cols * 4);
+        sbuf += mm.cols * 4;
 
+//        for(j=0;j<mm.cols;j++){
+//            for(k=0;k<4;k++) {
+//                *dbuf++ = *sbuf++;
+//            }
+//        }
+    }
+//    LOGE("bob mm2:%d x %d type:%d mrgba:%d x %d type:%d", mm.rows, mm.cols, mm.type(), mRgba.rows, mRgba.cols, mRgba.type());
+    LOGE("blit 444");
     Point p1(100,100);
     Point p2(300,300);
     cv::rectangle(mRgba,p1,p2,Scalar(255,255,255));
-
     cv::rectangle(mRgba,Point(10,10),Point(1079,1439),Scalar(255,255,255));
     cv::rectangle(mRgba,Point(100,100),Point(900,900),Scalar(255,255,255));
 
