@@ -70,6 +70,7 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     jint srcChromaElementStrideBytes, jint srcChromaRowStrideBytes,
     jobject dstSurface) {
     if (srcChromaElementStrideBytes != 1 && srcChromaElementStrideBytes != 2) {
+		LOGE("!!!blit ERROR NOT YUV format!!!\n");
         return false;
     }
 
@@ -79,6 +80,12 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         env->GetDirectBufferAddress(srcChromaUByteBuffer));
     uint8_t *srcChromaVPtr = reinterpret_cast<uint8_t *>(
         env->GetDirectBufferAddress(srcChromaVByteBuffer));
+	
+    if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr || srcChromaVPtr == nullptr) {
+        LOGE("blit NULL pointer ERROR");
+        return false;
+    }
+
 
     int dstWidth;
     int dstHeight;
@@ -86,11 +93,6 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     LOGE("blit src: width=%d height=%d\n", srcWidth, srcHeight);
 
     cv::Mat mYuv(srcHeight + srcHeight/2,srcWidth, CV_8UC1, srcLumaPtr);
-
-    if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr || srcChromaVPtr == nullptr) {
-        LOGE("blit NULL pointer ERROR");
-        return false;
-    }
 
     uint8_t *srcChromaUVInterleavedPtr = nullptr;
     bool swapDstUV;
@@ -109,9 +111,9 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 
     ANativeWindow *win = ANativeWindow_fromSurface(env, dstSurface);
     ANativeWindow_acquire(win);
-    LOGE("blit 111");
-
+	
     ANativeWindow_Buffer buf;
+	
     dstWidth = srcHeight;
     dstHeight = srcWidth;
 //    dstWidth = srcWidth;
@@ -124,54 +126,40 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         ANativeWindow_release(win);
         return false;
     }
-    int winHeight = ANativeWindow_getHeight(win);
-    int winWidth = ANativeWindow_getWidth(win);
-
-//    LOGE("bob dst: width=%d height=%d winWidth=%d winHeight=%d format:%d stride:%d\n", buf.width, buf.height, winWidth, winHeight, buf.format, buf.stride);
 
     uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
-    LOGE("blit 111 5555");
-    Mat mr(srcHeight, srcWidth, CV_8UC4);
-    cv::cvtColor(mYuv, mr, CV_YUV2RGBA_NV21);
-    LOGE("blit 222");
-    cv::Mat mRgba(dstHeight, buf.stride, CV_8UC4, dstLumaPtr);
+    Mat dstRgba(dstHeight, buf.stride, CV_8UC4, dstLumaPtr);		// TextureView buffer, use stride as width
+    Mat srcRgba(srcHeight, srcWidth, CV_8UC4);
+    Mat flipRgba(dstHeight, dstWidth, CV_8UC4);
 
-    cv::Mat mm(dstHeight, dstWidth, CV_8UC4);
+	// convert YUV -> RGBA
+    cv::cvtColor(mYuv, srcRgba, CV_YUV2RGBA_NV21);
 
-    cv::transpose(mr, mm);
-//    LOGE("bob mm:%d x %d", mm.rows, mm.cols);
-    cv::flip(mm, mm, 1);
-    LOGE("blit 333");
+	// Rotate 90 degree
+    cv::transpose(srcRgba, flipRgba);
+    cv::flip(flipRgba, flipRgba, 1);
+
+	// copy to TextureView surface
     uchar * dbuf;
     uchar * sbuf;
-    dbuf = mRgba.data;
-    sbuf = mm.data;
+    dbuf = dstRgba.data;
+    sbuf = flipRgba.data;
     int i;
-    int j;
-    int k;
-    for(i=0;i<mm.rows;i++) {
-        dbuf = mRgba.data + i * buf.stride * 4;
-        memcpy(dbuf, sbuf, mm.cols * 4);
-        sbuf += mm.cols * 4;
-
-//        for(j=0;j<mm.cols;j++){
-//            for(k=0;k<4;k++) {
-//                *dbuf++ = *sbuf++;
-//            }
-//        }
+    for(i=0;i<flipRgba.rows;i++) {
+        dbuf = dstRgba.data + i * buf.stride * 4;
+        memcpy(dbuf, sbuf, flipRgba.cols * 4);
+        sbuf += flipRgba.cols * 4;
     }
-//    LOGE("bob mm2:%d x %d type:%d mrgba:%d x %d type:%d", mm.rows, mm.cols, mm.type(), mRgba.rows, mRgba.cols, mRgba.type());
-    LOGE("blit 444");
+
+	// Draw some rectangles
     Point p1(100,100);
     Point p2(300,300);
-    cv::rectangle(mRgba,p1,p2,Scalar(255,255,255));
-    cv::rectangle(mRgba,Point(10,10),Point(1079,1439),Scalar(255,255,255));
-    cv::rectangle(mRgba,Point(100,100),Point(900,900),Scalar(255,255,255));
-
+    cv::rectangle(dstRgba,p1,p2,Scalar(255,255,255));
+    cv::rectangle(dstRgba,Point(10,10),Point(dstWidth-1,dstHeight-1),Scalar(255,255,255));
+    cv::rectangle(dstRgba,Point(100,100),Point(dstWidth/2,dstWidth/2),Scalar(255,255,255));
 
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);
-    LOGE("blit done");
     return 0;
 }
 }
@@ -179,7 +167,6 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 extern "C" {
 JNIEXPORT void JNICALL
 Java_com_neza_myrobot_JNIUtils_test(JNIEnv *env, jobject assetManager) {
-
 }
 }
 
