@@ -103,7 +103,8 @@ public class NezaActivityFragment extends Fragment
     private static final int MAX_PREVIEW_HEIGHT = 1080;
     private static final double ASPECT_RATIO_TOLERANCE = 0.005;
 
-    private Size mCameraSize = new Size(800,600);
+    private Size mCameraSize = new Size(640,480);
+//    private Size mCameraSize = new Size(800,600);
 //    private Size mCameraSize = new Size(1280,960);
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
