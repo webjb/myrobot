@@ -1,7 +1,5 @@
 package com.neza.myrobot;
 
-//import android.support.v4.app.Fragment;
-
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -11,7 +9,7 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
+//import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
@@ -24,26 +22,27 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraMetadata;
+//import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.DngCreator;
+//import android.hardware.camera2.CaptureResult;
+//import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.hardware.camera2.params.InputConfiguration;
+//import android.hardware.camera2.params.InputConfiguration;
 import android.media.Image;
 import android.media.ImageReader;
-import android.media.MediaScannerConnection;
-import android.net.Uri;
-import android.os.AsyncTask;
+//import android.media.MediaScannerConnection;
+//import android.net.Uri;
+//import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
+//import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.os.SystemClock;
+//import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.support.v13.app.FragmentCompat;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -54,8 +53,8 @@ import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+//import android.view.SurfaceHolder;
+//import android.view.SurfaceView;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
@@ -66,25 +65,25 @@ import com.android.ex.camera2.blocking.BlockingStateCallback;
 import com.android.ex.camera2.exceptions.TimeoutRuntimeException;
 
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
+//import java.io.File;
+//import java.io.FileOutputStream;
+//import java.io.IOException;
+//import java.io.OutputStream;
+//import java.nio.ByteBuffer;
+//import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+//import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
+//import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.LinkedBlockingQueue;
+//import java.util.Locale;
+//import java.util.Map;
+//import java.util.TreeMap;
+//import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+//import java.util.concurrent.TimeUnit;
+//import java.util.concurrent.atomic.AtomicInteger;
 
 public class NezaActivityFragment extends Fragment
         implements View.OnClickListener, FragmentCompat.OnRequestPermissionsResultCallback {
@@ -129,18 +128,16 @@ public class NezaActivityFragment extends Fragment
 	private Handler mBackgroundHandler;
 	
     private RefCountedAutoCloseable<ImageReader> mImageReader;
-    private CaptureRequest.Builder mPreviewRequestBuilder;
-    private BlockingStateCallback mDeviceCallback;
 
     private HandlerThread mBackgroundThread;
 //    private final int mImageFormat = ImageFormat.FLEX_RGB_888;
-    private final int mImageFormat = ImageFormat.YUV_420_888;
+    private static final int mImageFormat = ImageFormat.YUV_420_888;
 //    private final int mImageFormat = ImageFormat.RAW_SENSOR;
 
     private OrientationEventListener mOrientationListener;
+    private final Handler mMessageHandler;
 
-
-    CaptureCallbackWaiter mPreCaptureCallback = new CaptureCallbackWaiter();
+//    CaptureCallbackWaiter mPreCaptureCallback = new CaptureCallbackWaiter();
 
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener
             = new TextureView.SurfaceTextureListener() {
@@ -199,6 +196,7 @@ public class NezaActivityFragment extends Fragment
 
     };
 */
+/*
     private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
 
         @Override
@@ -239,39 +237,31 @@ public class NezaActivityFragment extends Fragment
             }
         }
     };
-	
+*/
     private final CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {
+        //@Override
         @Override
-        public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request,
+        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
                                      long timestamp, long frameNumber) {
 //            Log.d(TAG, "bob onCaptureStarted");
 
         }
 
         @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,
-                                       TotalCaptureResult result) {
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
             // bob
 //            Log.d(TAG, "bob onCaptureCompleted");
         }
 
         @Override
-        public void onCaptureFailed(CameraCaptureSession session, CaptureRequest request,
-                                    CaptureFailure failure) {
+        public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
+                                    @NonNull CaptureFailure failure) {
             // bob
             Log.d(TAG, "bob onCaptureFailed");
-            /*
-            int requestId = (int) request.getTag();
-
-            synchronized (mCameraStateLock) {
-                mRawResultQueue.remove(requestId);
-                finishedCaptureLocked();
-            }
             showToast("Capture failed!");
-            */
         }
-
     };
 	
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
@@ -304,28 +294,40 @@ public class NezaActivityFragment extends Fragment
         }
     };
 
-	private void createCameraPreviewSession() {
+    public NezaActivityFragment() {
+        mMessageHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                Activity activity = getActivity();
+                if (activity != null) {
+                    Toast.makeText(activity, (String) msg.obj, Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
+    }
+
+    private void createCameraPreviewSession() {
+        CaptureRequest.Builder mPreviewRequestBuilder;
 		try {
             SurfaceTexture texture = mSurfaceView.getSurfaceTexture();
             // We configure the size of default buffer to be the size of camera preview we want.
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
             // This is the output Surface we need to start preview.
-            Surface surface = new Surface(texture);
-            mSurface = surface;
+            mSurface = new Surface(texture);
 
             Log.d(TAG, "bob createCameraPreviewSession ========================");
 
 			// We set up a CaptureRequest.Builder with the output Surface.
 			mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            //mPreviewRequestBuilder.addTarget(surface);
+            //mPreviewRequestBuilder.addTarget(mSurface);
 			mPreviewRequestBuilder.addTarget(mImageReader.get().getSurface());
 
 			BlockingSessionCallback sessionCallback = new BlockingSessionCallback();
 
-            List<Surface> outputSurfaces = new ArrayList<Surface>();
+            List<Surface> outputSurfaces = new ArrayList<>();
             outputSurfaces.add(mImageReader.get().getSurface());
-            //outputSurfaces.add(surface);
+            //outputSurfaces.add(mSurface);
 
 			mCameraDevice.createCaptureSession(outputSurfaces, sessionCallback, mBackgroundHandler);
 
@@ -400,9 +402,9 @@ public class NezaActivityFragment extends Fragment
 
         // Make the SurfaceView VISIBLE so that on resume, surfaceCreated() is called,
         // and on pause, surfaceDestroyed() is called.
-//        mSurfaceView.setVisibility(View.VISIBLE);
-//        mSurfaceView.getHolder().addCallback(mSurfaceCallback);
-        openCamera(mSurfaceView.getWidth(), mSurfaceView.getHeight());
+
+//        openCamera(mSurfaceView.getWidth(), mSurfaceView.getHeight());
+        openCamera();
 
         if (mSurfaceView.isAvailable()) {
             Log.d(TAG, "onResume");
@@ -428,7 +430,7 @@ public class NezaActivityFragment extends Fragment
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CAMERA_PERMISSIONS) {
             for (int result : grantResults) {
                 if (result != PackageManager.PERMISSION_GRANTED) {
@@ -476,7 +478,7 @@ public class NezaActivityFragment extends Fragment
         }
     }
 	
-	private boolean setUpCameraOutputs(int width, int height) {
+	private boolean setUpCameraOutputs() {
 		Activity activity = getActivity();
 		CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
 		if (manager == null) {
@@ -495,17 +497,18 @@ public class NezaActivityFragment extends Fragment
 					continue;
 				}
 
-				StreamConfigurationMap map = characteristics.get(
-						CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+				StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+
+                if (map == null) throw new AssertionError();
 
                 int[] of = map.getOutputFormats();
                 for(int i=0;i<of.length;i++) {
-                    Log.d(TAG, "bob output:" + i+" "+ of[i]);
+                    Log.d(TAG, "output:" + i+" "+ of[i]);
                 }
 				Size[] sizes = map.getOutputSizes(mImageFormat);
                 for(int i=0;i<sizes.length;i++)
                 {
-                    Log.d(TAG,"bob OutputSizes:"+i+" " + sizes[i].getWidth() + " x "+sizes[i].getHeight());
+                    Log.d(TAG,"OutputSizes:"+i+" " + sizes[i].getWidth() + " x "+sizes[i].getHeight());
                 }
 
 				//Size largest = Collections.max(Arrays.asList(map.getOutputSizes(mImageFormat)),new CompareSizesByArea());
@@ -517,7 +520,7 @@ public class NezaActivityFragment extends Fragment
 					// counted wrapper to ensure they are only closed when all background tasks
 					// using them are finished.
 
-                    Log.d(TAG, "bob Image size:" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
+                    Log.d(TAG, "Image size:" + mCameraSize.getWidth() + "x" + mCameraSize.getHeight());
 					if (mImageReader == null || mImageReader.getAndRetain() == null) {
 						mImageReader = new RefCountedAutoCloseable<>(
                           ImageReader.newInstance(mCameraSize.getWidth(), mCameraSize.getHeight(),mImageFormat,5));
@@ -555,8 +558,7 @@ public class NezaActivityFragment extends Fragment
                 return;
             }
 
-            StreamConfigurationMap map = mCharacteristics.get(
-                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            StreamConfigurationMap map = mCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
             // For still image captures, we always use the largest available size.
 //            Size largestJpeg = Collections.max(Arrays.asList(map.getOutputSizes(mImageFormat)), new CompareSizesByArea());
@@ -571,34 +573,40 @@ public class NezaActivityFragment extends Fragment
 
             // Swap the view dimensions for calculation as needed if they are rotated relative to
             // the sensor.
-            Log.d(TAG, "bob rotation:"+ deviceRotation + " x " + totalRotation + " size:"+ viewWidth + "x" + viewHeight + " disp:"+displaySize.x+"x"+displaySize.y);
-            boolean swappedDimensions = totalRotation == 90 || totalRotation == 270;
-            int rotatedViewWidth = viewWidth;
-            int rotatedViewHeight = viewHeight;
-            int maxPreviewWidth = displaySize.x;
-            int maxPreviewHeight = displaySize.y;
+            Log.d(TAG, "rotation:"+ deviceRotation + " x " + totalRotation + " size:"+ viewWidth + "x" + viewHeight + " disp:"+displaySize.x+"x"+displaySize.y);
+            boolean swappedDimensions = (totalRotation == 90) || (totalRotation == 270);
+            int rotatedVW;
+            int rotatedVH;
+            int maxPreviewW;
+            int maxPreviewH;
 
-            //swappedDimensions = false;
             if (swappedDimensions) {
-                Log.d(TAG, "bob swapped "+ swappedDimensions);
-                rotatedViewWidth = viewHeight;
-                rotatedViewHeight = viewWidth;
-                maxPreviewWidth = displaySize.y;
-                maxPreviewHeight = displaySize.x;
+                rotatedVW = viewHeight;
+                rotatedVH = viewWidth;
+                maxPreviewW = displaySize.y;
+                maxPreviewH = displaySize.x;
+            }
+            else {
+                rotatedVW = viewWidth;
+                rotatedVH = viewHeight;
+                maxPreviewW = displaySize.x;
+                maxPreviewH = displaySize.y;
+
             }
 
             // Preview should not be larger than display size and 1080p.
-            if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
-                maxPreviewWidth = MAX_PREVIEW_WIDTH;
+            if (maxPreviewW > MAX_PREVIEW_WIDTH) {
+                maxPreviewW = MAX_PREVIEW_WIDTH;
             }
 
-            if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
-                maxPreviewHeight = MAX_PREVIEW_HEIGHT;
+            if (maxPreviewH > MAX_PREVIEW_HEIGHT) {
+                maxPreviewH = MAX_PREVIEW_HEIGHT;
             }
 
             // Find the best preview size for these view dimensions and configured JPEG size.
+            assert map != null;
             Size previewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                    rotatedViewWidth, rotatedViewHeight, maxPreviewWidth, maxPreviewHeight,
+                    rotatedVW, rotatedVH, maxPreviewW, maxPreviewH,
                     mCameraSize);
 
             if (swappedDimensions) {
@@ -609,8 +617,10 @@ public class NezaActivityFragment extends Fragment
 
             // Find rotation of device in degrees (reverse device orientation for front-facing
             // cameras).
-            int rotation = (mCharacteristics.get(CameraCharacteristics.LENS_FACING) ==
-                    CameraCharacteristics.LENS_FACING_FRONT) ?
+            int cameraFacing;
+            assert mCharacteristics != null;
+            cameraFacing = mCharacteristics.get(CameraCharacteristics.LENS_FACING);
+            int rotation = ( cameraFacing == CameraCharacteristics.LENS_FACING_FRONT) ?
                     (360 + ORIENTATIONS.get(deviceRotation)) % 360 :
                     (360 - ORIENTATIONS.get(deviceRotation)) % 360;
 
@@ -639,7 +649,7 @@ public class NezaActivityFragment extends Fragment
 
             }
             matrix.postRotate(rotation, centerX, centerY);
-            Log.d(TAG, "bob rotation:"+rotation + " centerX:"+ centerX + " centerY:"+ centerY);
+            Log.d(TAG, "rotation:"+rotation + " centerX:"+ centerX + " centerY:"+ centerY);
             mSurfaceView.setTransform(matrix);
 
             // Start or restart the active capture session if the preview was initialized or
@@ -650,23 +660,12 @@ public class NezaActivityFragment extends Fragment
                     createCameraPreviewSession();
 //                }
             }
-            Log.d(TAG, "bob rotation previewSize:"+mPreviewSize.getWidth() +" "+ mPreviewSize.getHeight() );
+            Log.d(TAG, "rotation previewSize:"+mPreviewSize.getWidth() +" "+ mPreviewSize.getHeight() );
         }
     }
-   /*
-    private void configureTransform(int viewWidth, int viewHeight) {
-        Activity activity = getActivity();
-        if (null == mSurfaceView || null == mPreviewSize || null == activity) {
-            return;
-        }
-        } else if (Surface.ROTATION_180 == rotation) {
-            matrix.postRotate(180, centerX, centerY);
-        }
-        mSurfaceView.setTransform(matrix);
-    }
-*/
-    private void openCamera(int width, int height) {
-        if (!setUpCameraOutputs(width, height)) {
+
+    private void openCamera() {
+        if (!setUpCameraOutputs()) {
             return;
         }
         if (!hasAllPermissionsGranted()) {
@@ -678,7 +677,7 @@ public class NezaActivityFragment extends Fragment
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         BlockingCameraManager blockingManager = new BlockingCameraManager(manager);
         try {
-            mDeviceCallback = new BlockingStateCallback() {
+            BlockingStateCallback mDeviceCallback = new BlockingStateCallback() {
 
                 @Override
                 public void onDisconnected(CameraDevice camera) {
@@ -749,10 +748,7 @@ public class NezaActivityFragment extends Fragment
 
     }
 
-    /**
-     * A dialog fragment for displaying non-recoverable errors; this {@ling Activity} will be
-     * finished once the dialog has been acknowledged by the user.
-     */
+
     public static class ErrorDialog extends DialogFragment {
 
         private String mErrorMessage;
@@ -797,11 +793,6 @@ public class NezaActivityFragment extends Fragment
 			mObject = object;
 		}
 
-		/**
-		 * Increment the reference count and return the wrapped object.
-		 *
-		 * @return the wrapped object, or null if the object has been released.
-		 */
 		public synchronized T getAndRetain() {
 			if (mRefCount < 0) {
 				return null;
@@ -839,18 +830,18 @@ public class NezaActivityFragment extends Fragment
 			}
 		}
 	}
-
+/*
     private class CaptureCallbackWaiter extends CameraCaptureSession.CaptureCallback {
         private final LinkedBlockingQueue<TotalCaptureResult> mResultQueue =
                 new LinkedBlockingQueue<>();
 
         @Override
-        public void onCaptureStarted(CameraCaptureSession session, CaptureRequest request,
+        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
                                      long timestamp, long frameNumber) {
         }
 
         @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
                                        TotalCaptureResult result) {
             try {
                 mResultQueue.put(result);
@@ -881,7 +872,7 @@ public class NezaActivityFragment extends Fragment
             return result;
         }
     }
-
+*/
     public static class PermissionConfirmationDialog extends DialogFragment {
 
         public static PermissionConfirmationDialog newInstance() {
@@ -959,21 +950,12 @@ public class NezaActivityFragment extends Fragment
         }
     }
 
-    /**
-     * Generate a string containing a formatted timestamp with the current date and time.
-     *
-     * @return a {@link String} representing a time.
-     */
+    /*
     private static String generateTimestamp() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.US);
         return sdf.format(new Date());
     }
 
-    /**
-     * Cleanup the given {@link OutputStream}.
-     *
-     * @param outputStream the stream to close.
-     */
     private static void closeOutput(OutputStream outputStream) {
         if (null != outputStream) {
             try {
@@ -983,7 +965,7 @@ public class NezaActivityFragment extends Fragment
             }
         }
     }
-
+*/
     /**
      * Return true if the given array contains the given integer.
      *
@@ -1027,13 +1009,14 @@ public class NezaActivityFragment extends Fragment
      * @return the total rotation from the sensor orientation to the current device orientation.
      */
     private static int sensorToDeviceRotation(CameraCharacteristics c, int deviceOrientation) {
+        assert c != null;
         int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
         // Get device orientation in degrees
         deviceOrientation = ORIENTATIONS.get(deviceOrientation);
 
         // Reverse device orientation for front-facing cameras
-        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT ) {
             deviceOrientation = -deviceOrientation;
         }
 
@@ -1077,16 +1060,6 @@ public class NezaActivityFragment extends Fragment
         }
         return false;
     }
-
-    private final Handler mMessageHandler = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(Message msg) {
-            Activity activity = getActivity();
-            if (activity != null) {
-                Toast.makeText(activity, (String) msg.obj, Toast.LENGTH_SHORT).show();
-            }
-        }
-    };
 
 	private void showToast(String text) {
 		// We show a Toast by sending request message to mMessageHandler. This makes sure that the
