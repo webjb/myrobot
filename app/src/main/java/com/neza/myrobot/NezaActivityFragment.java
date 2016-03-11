@@ -376,12 +376,6 @@ public class NezaActivityFragment extends Fragment
 //        view.findViewById(R.id.picture).setOnClickListener(this);
 
 		mSurfaceView = (AutoFitSurfaceView) view.findViewById(R.id.surface_view);
-//		mSurfaceView.setAspectRatio(DESIRED_IMAGE_READER_SIZE.getWidth(),
-//                DESIRED_IMAGE_READER_SIZE.getHeight());
-	// This must be called here, before the initial buffer creation.
-	// Putting this inside surfaceCreated() is insufficient.
-//		mSurfaceView.getHolder().setFormat(ImageFormat.YV12);
-        //view.findViewById(R.id.toggle).setOnClickListener(this);
 
         mOrientationListener = new OrientationEventListener(getActivity(),
                 SensorManager.SENSOR_DELAY_NORMAL) {
@@ -617,9 +611,11 @@ public class NezaActivityFragment extends Fragment
 
             // Find rotation of device in degrees (reverse device orientation for front-facing
             // cameras).
-            int cameraFacing;
+            Integer cameraFacing;
             assert mCharacteristics != null;
-            cameraFacing = mCharacteristics.get(CameraCharacteristics.LENS_FACING);
+            cameraFacing =  mCharacteristics.get(CameraCharacteristics.LENS_FACING);
+            assert cameraFacing != null;
+
             int rotation = ( cameraFacing == CameraCharacteristics.LENS_FACING_FRONT) ?
                     (360 + ORIENTATIONS.get(deviceRotation)) % 360 :
                     (360 - ORIENTATIONS.get(deviceRotation)) % 360;
@@ -1008,16 +1004,20 @@ public class NezaActivityFragment extends Fragment
      *                          orientation.
      * @return the total rotation from the sensor orientation to the current device orientation.
      */
-    private static int sensorToDeviceRotation(CameraCharacteristics c, int deviceOrientation) {
+    private int sensorToDeviceRotation(CameraCharacteristics c, int deviceOrientation) {
         assert c != null;
-        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        Integer sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        assert sensorOrientation != null;
 
-        // Get device orientation in degrees
-        deviceOrientation = ORIENTATIONS.get(deviceOrientation);
+        Integer deviceOrt = ORIENTATIONS.get(deviceOrientation);
 
+        deviceOrientation = deviceOrt;
         // Reverse device orientation for front-facing cameras
-        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT ) {
-            deviceOrientation = -deviceOrientation;
+        Integer facing = c.get(CameraCharacteristics.LENS_FACING);
+        assert facing != null;
+        //int f = facing;
+        if ( facing == CameraCharacteristics.LENS_FACING_FRONT ) {
+            deviceOrientation = - deviceOrt;
         }
 
         // Calculate desired JPEG orientation relative to camera orientation to make
@@ -1032,11 +1032,6 @@ public class NezaActivityFragment extends Fragment
         }
     }
 
-    /**
-     * Tells whether all the necessary permissions are granted to this app.
-     *
-     * @return True if all the required permissions are granted.
-     */
     private boolean hasAllPermissionsGranted() {
         for (String permission : CAMERA_PERMISSIONS) {
             if (ActivityCompat.checkSelfPermission(getActivity(), permission)
@@ -1068,5 +1063,4 @@ public class NezaActivityFragment extends Fragment
 		message.obj = text;
 		mMessageHandler.sendMessage(message);
 	}
-
 }
