@@ -47,30 +47,99 @@ bool checkBufferSizesMatch(int srcWidth, int srcHeight,
     return (srcWidth == buf->width && srcHeight == buf->height);
 }
 
-void BallDetect(Mat & img_rgba, int &x, int &y, int &r)
-{
+#define PI 3.14159
+
+void LaneDetect(Mat & img_rgba) {
+    Mat img_gray;
+    Mat img_hsv;
+    Mat img_3;
+    int houghVote = 200;
+//    cvtColor(img_rgba, img_gray, COLOR_RGBA2GRAY);
+//    cvtColor(img_gray, img_3, COLOR_GRAY2RGB);
+//    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
+
+    cv::cvtColor(img_rgba, img_hsv, CV_RGB2HSV);
+    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
+//    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
+
+//    cv::blur(img_gray, img_gray, Size(3, 3));
+//    threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
+
+    Mat contours;
+    Canny(img_gray,contours,50,250);
+    Mat contoursInv;
+    threshold(contours,contoursInv,128,255,THRESH_BINARY_INV);
+
+    vector<Vec4i> lines;
+    HoughLinesP( contours, lines, 1, CV_PI/180, 80, 30, 10 );
+    LOGE("bob lines count:%d", lines.size());
+    for( size_t i = 0; i < lines.size(); i++ )
+    {
+        line( img_rgba, Point(lines[i][0], lines[i][1]),
+              Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
+    }
+
+#if 0
+    std::vector<Vec2f> lines;
+    if (houghVote < 1 or lines.size() > 2){ // we lost all lines. reset
+        houghVote = 200;
+    }
+    else{ houghVote += 25;}
+    while(lines.size() < 5 && houghVote > 0){
+        HoughLines(contours,lines,1,PI/180, houghVote);
+        houghVote -= 5;
+    }
+
+    Mat result(img_gray.size(),CV_8U,Scalar(255));
+    img_gray.copyTo(result);
+
+    // Draw the limes
+    std::vector<Vec2f>::const_iterator it= lines.begin();
+    Mat hough(img_gray.size(),CV_8U,Scalar(0));
+    while (it!=lines.end()) {
+
+        float rho= (*it)[0];   // first element is distance rho
+        float theta= (*it)[1]; // second element is angle theta
+
+        if ( theta > 0.09 && theta < 1.48 || theta < 3.14 && theta > 1.66 ) { // filter to remove vertical and horizontal lines
+
+            // point of intersection of the line with first row
+            Point pt1(rho/cos(theta),0);
+            // point of intersection of the line with last row
+            Point pt2((rho-result.rows*sin(theta))/cos(theta),result.rows);
+            // draw a white line
+            line( result, pt1, pt2, Scalar(255), 8);
+            line( hough, pt1, pt2, Scalar(255), 8);
+        }
+
+        //std::cout << "line: (" << rho << "," << theta << ")\n";
+        ++it;
+    }
+#endif
+//    cvtColor(contours, img_3, COLOR_GRAY2RGB);
+//    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
+
+//    erode(img_gray, img_gray, kernel_ero);
+}
+
+void BallDetect(Mat & img_rgba, int &x, int &y, int &r) {
     int width;
     int height;
     width = img_rgba.cols;
     height = img_rgba.rows;
     Mat hsv_frame;
 
-    LOGE("det 1");
     cv::Mat* thresholded = new cv::Mat(cv::Size(width, height), CV_8UC1);
 
     cv::Rect roi( cv::Point( 0, 0 ), Size(width, height) );
     CvSize size = cvSize(width, height);
 
     cvtColor(img_rgba, hsv_frame, CV_RGB2HSV);
-    LOGE("det 2");
     inRange(hsv_frame, Scalar(1, 80, 80), Scalar(7, 250, 250), *thresholded);
-    LOGE("det 3");
 
     GaussianBlur(*thresholded, *thresholded, Size(9,9), 0, 0);
-    LOGE("det 4");
     vector<Vec3f> circles;
     HoughCircles(*thresholded, circles, CV_HOUGH_GRADIENT,1.5, height/4, 100, 40, 15, 80 );
-    LOGE("det 5");
 
     for( size_t i = 0; i < circles.size(); i++ )
     {
@@ -169,17 +238,21 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     cv::transpose(srcRgba, flipRgba);
     cv::flip(flipRgba, flipRgba, 1);
 
+#if 0
     int ball_x;
     int ball_y;
     int ball_r;
 
     ball_r = 0;
-    LOGE("dddd");
+
     BallDetect(flipRgba, ball_x, ball_y, ball_r);
     if( ball_r > 0)
         LOGE("ball x:%d y:%d r:%d", ball_x, ball_y, ball_r);
     else
         LOGE("ball not detected");
+#endif
+
+    LaneDetect(flipRgba);
 
     // copy to TextureView surface
     uchar * dbuf;
