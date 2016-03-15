@@ -335,8 +335,8 @@ public class NezaActivityFragment extends Fragment
 				Log.d(TAG, "waiting on session.");
 				mCaptureSession = sessionCallback.waitAndGetSession(SESSION_WAIT_TIMEOUT_MS);
 				try {
-					mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-						CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+					mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_AUTO);
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
 
 					// Comment out the above and uncomment this to disable continuous autofocus and
 					// instead set it to a fixed value of 20 diopters. This should make the picture

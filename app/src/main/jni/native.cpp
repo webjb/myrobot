@@ -62,22 +62,23 @@ void LaneDetect(Mat & img_rgba) {
     inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
 
-//    cv::blur(img_gray, img_gray, Size(3, 3));
-//    threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
-
-    Mat contours;
-    Canny(img_gray,contours,50,250);
-    Mat contoursInv;
-    threshold(contours,contoursInv,128,255,THRESH_BINARY_INV);
+    cv::blur(img_gray, img_gray, Size(15, 15));
+    threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
+#if 1
+    Mat img_contours;
+    Canny(img_gray,img_contours,50,250);
+    Mat img_contoursInv;
+//    threshold(contours,contoursInv,128,255,THRESH_BINARY_INV);
 
     vector<Vec4i> lines;
-    HoughLinesP( contours, lines, 1, CV_PI/180, 80, 30, 10 );
+    HoughLinesP( img_contours, lines, 1, CV_PI/180, 80, 30, 10 );
     LOGE("bob lines count:%d", lines.size());
     for( size_t i = 0; i < lines.size(); i++ )
     {
         line( img_rgba, Point(lines[i][0], lines[i][1]),
               Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
     }
+#endif
 
 #if 0
     std::vector<Vec2f> lines;
@@ -116,7 +117,8 @@ void LaneDetect(Mat & img_rgba) {
         ++it;
     }
 #endif
-//    cvtColor(contours, img_3, COLOR_GRAY2RGB);
+//    cvtColor(img_contours, img_3, COLOR_GRAY2RGB);
+//    cvtColor(img_gray, img_3, COLOR_GRAY2RGB);
 //    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
 
 //    erode(img_gray, img_gray, kernel_ero);
