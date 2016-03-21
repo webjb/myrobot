@@ -53,25 +53,39 @@ void LaneDetect(Mat & img_rgba) {
     Mat img_gray;
     Mat img_hsv;
     Mat img_3;
-    int houghVote = 200;
+    Mat img_dis;
+
 //    cvtColor(img_rgba, img_gray, COLOR_RGBA2GRAY);
 //    cvtColor(img_gray, img_3, COLOR_GRAY2RGB);
 //    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
 
     cv::cvtColor(img_rgba, img_hsv, CV_RGB2HSV);
-    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
+//    inRange(img_hsv, Scalar(0, 0, 20), Scalar(140, 150, 255), img_gray);
+//    inRange(img_hsv, Scalar(20, 0, 70), Scalar(40, 50, 200), img_gray);
+
+//    inRange(img_hsv, Scalar(0, 0, 3), Scalar(180, 50, 255), img_gray);
+
+    inRange(img_hsv, Scalar(20, 4, 170), Scalar(50, 40, 255), img_gray);
 
     cv::blur(img_gray, img_gray, Size(15, 15));
     threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
+
 #if 1
     Mat img_contours;
     Canny(img_gray,img_contours,50,250);
-    Mat img_contoursInv;
+
+    img_dis = img_gray;
+    cvtColor(img_dis, img_3, COLOR_GRAY2RGB);
+    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
+
+    //Mat img_contoursInv;
 //    threshold(contours,contoursInv,128,255,THRESH_BINARY_INV);
 
     vector<Vec4i> lines;
-    HoughLinesP( img_contours, lines, 1, CV_PI/180, 80, 30, 10 );
+//    HoughLinesP( img_contours, lines, 1, CV_PI/180, 80, 30, 10 );
+//    HoughLinesP( img_contours, lines, 1, CV_PI/180, 40, 0, 30 );
+    HoughLinesP( img_contours, lines, 1, CV_PI/180, 40, 100, 30 );
     LOGE("bob lines count:%d", lines.size());
     for( size_t i = 0; i < lines.size(); i++ )
     {
@@ -80,46 +94,6 @@ void LaneDetect(Mat & img_rgba) {
     }
 #endif
 
-#if 0
-    std::vector<Vec2f> lines;
-    if (houghVote < 1 or lines.size() > 2){ // we lost all lines. reset
-        houghVote = 200;
-    }
-    else{ houghVote += 25;}
-    while(lines.size() < 5 && houghVote > 0){
-        HoughLines(contours,lines,1,PI/180, houghVote);
-        houghVote -= 5;
-    }
-
-    Mat result(img_gray.size(),CV_8U,Scalar(255));
-    img_gray.copyTo(result);
-
-    // Draw the limes
-    std::vector<Vec2f>::const_iterator it= lines.begin();
-    Mat hough(img_gray.size(),CV_8U,Scalar(0));
-    while (it!=lines.end()) {
-
-        float rho= (*it)[0];   // first element is distance rho
-        float theta= (*it)[1]; // second element is angle theta
-
-        if ( theta > 0.09 && theta < 1.48 || theta < 3.14 && theta > 1.66 ) { // filter to remove vertical and horizontal lines
-
-            // point of intersection of the line with first row
-            Point pt1(rho/cos(theta),0);
-            // point of intersection of the line with last row
-            Point pt2((rho-result.rows*sin(theta))/cos(theta),result.rows);
-            // draw a white line
-            line( result, pt1, pt2, Scalar(255), 8);
-            line( hough, pt1, pt2, Scalar(255), 8);
-        }
-
-        //std::cout << "line: (" << rho << "," << theta << ")\n";
-        ++it;
-    }
-#endif
-//    cvtColor(img_contours, img_3, COLOR_GRAY2RGB);
-//    cvtColor(img_gray, img_3, COLOR_GRAY2RGB);
-//    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
 
 //    erode(img_gray, img_gray, kernel_ero);
 }
