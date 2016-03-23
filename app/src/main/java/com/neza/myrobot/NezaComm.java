@@ -24,15 +24,14 @@ import android.support.v4.app.ActivityCompat;
 public class NezaComm {
     private static final String TAG = "myRobot";
 
-    private Socket socket;
+    public static Socket socket;
     Thread serverThread = null;
     public static final int SERVERPORT = 6000;
     private static final String SERVER_IP = "192.168.2.77";
-    int [] BallCenter;
-    int [] DoorLocation;
 
-    public int send_message(String str)
+    public static int send_message(String str)
     {
+
         try {
             PrintWriter out = new PrintWriter(new BufferedWriter(
                     new OutputStreamWriter(socket.getOutputStream())),
@@ -45,6 +44,8 @@ public class NezaComm {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        Log.i(TAG, "bob send_message");
         return 0;
     }
     public boolean isConnected(Activity activity)
@@ -58,17 +59,29 @@ public class NezaComm {
         }
     }
 
-    class DetectThread implements Runnable {
+    public static class DetectThread implements Runnable {
         public void run() {
 
             int ball_x;
             int ball_y;
             int ball_r;
             int need_send_ball_pos;
+            int [] BallCenter;
+            int [] DoorLocation;
+
             ball_x = 0;
             ball_y = 0;
             ball_r = 0;
             need_send_ball_pos = 0;
+
+            BallCenter = new int[3];
+            BallCenter[0] = 0;
+            BallCenter[1] = 0;
+            BallCenter[2] = 0;
+
+            DoorLocation = new int[2];
+            DoorLocation[0] = 0;
+            DoorLocation[1] = 1;
 
             while( true) {
                 try{

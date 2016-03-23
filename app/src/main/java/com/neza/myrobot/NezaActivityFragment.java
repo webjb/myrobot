@@ -137,6 +137,8 @@ public class NezaActivityFragment extends Fragment
     private OrientationEventListener mOrientationListener;
     private final Handler mMessageHandler;
 
+    private Thread commThread;
+
 //    CaptureCallbackWaiter mPreCaptureCallback = new CaptureCallbackWaiter();
 
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener
@@ -387,6 +389,10 @@ public class NezaActivityFragment extends Fragment
                 }
             }
         };
+
+        commThread = new Thread(new NezaComm.DetectThread());
+        commThread.start();
+
     }
 
     @Override
@@ -419,7 +425,14 @@ public class NezaActivityFragment extends Fragment
         }
         closeCamera();
         stopBackgroundThread();
-		
+
+        try {
+            commThread.join();
+            commThread = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         super.onPause();
     }
 
