@@ -1,5 +1,6 @@
 package com.neza.myrobot;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -53,5 +54,13 @@ public class NezaActivity extends AppCompatActivity {
 //        }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch(requestCode) {
+
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 }
