@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 using namespace std;
 using namespace cv;
@@ -48,6 +49,45 @@ bool checkBufferSizesMatch(int srcWidth, int srcHeight,
 }
 
 #define PI 3.14159
+
+int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
+    int x0;
+    int y0;
+    int x1;
+    int y1;
+    int x_org;
+    int y_org;
+    float a;
+    float b;
+//    float alpha;
+    x_org = width/2;
+    y_org = height;
+
+    x0 = p0.x - x_org;
+    y0 = y_org - p0.y;
+
+    x1 = p1.x - x_org;
+    y1 = y_org - p1.y;
+
+    int d;
+
+    if( (x1 != x0) && (x1 != 0) ) {
+        a = (float) (y1 - y0);
+        a = a / ((float) (x1 - x0));
+        b = y0 - a * (float) x0;
+        alpha = atan(a);
+        d = (int)(abs(b/a) * sin(alpha));
+
+        alpha *= 180/PI;
+    }
+    else {
+        alpha = 90;
+        d = x1;
+    }
+
+    //LOGE("bob alpha:%f distance:%d",alpha, d);
+    return d;
+}
 
 void LaneDetect(Mat & img_rgba) {
     Mat img_gray;
@@ -86,15 +126,23 @@ void LaneDetect(Mat & img_rgba) {
 //    HoughLinesP( img_contours, lines, 1, CV_PI/180, 80, 30, 10 );
 //    HoughLinesP( img_contours, lines, 1, CV_PI/180, 40, 0, 30 );
     HoughLinesP( img_contours, lines, 1, CV_PI/180, 40, 100, 30 );
+
     LOGE("bob lines count:%d", lines.size());
+    float alpha;
+    int width;
+    int height;
+    int distance;
+    width = img_rgba.cols;
+    height = img_rgba.rows;
     for( size_t i = 0; i < lines.size(); i++ )
     {
         line( img_rgba, Point(lines[i][0], lines[i][1]),
               Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
+
+        distance = calc_distance(width, height, Point(lines[i][0],lines[i][1]), Point(lines[i][2], lines[i][3]), alpha);
+        LOGE("bob lines dis (%d,%d) - (%d,%d) alpha:%f distance:%d\n", lines[i][0], lines[i][1], lines[i][2], lines[i][3], alpha, distance);
     }
 #endif
-
-
 //    erode(img_gray, img_gray, kernel_ero);
 }
 
@@ -249,6 +297,7 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     cv::rectangle(dstRgba,Point(10,10),Point(dstWidth-1,dstHeight-1),Scalar(255,255,255));
     cv::rectangle(dstRgba,Point(100,100),Point(dstWidth/2,dstWidth/2),Scalar(255,255,255));
 
+    LOGE("bob dstWidth=%d height=%d", dstWidth, dstHeight);
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);
     return 0;
