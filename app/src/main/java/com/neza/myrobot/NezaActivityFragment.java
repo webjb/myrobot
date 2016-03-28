@@ -32,11 +32,8 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 //import android.hardware.camera2.params.InputConfiguration;
 import android.media.Image;
 import android.media.ImageReader;
-//import android.media.MediaScannerConnection;
-//import android.net.Uri;
-//import android.os.AsyncTask;
 import android.os.Bundle;
-//import android.os.Environment;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -65,12 +62,14 @@ import com.android.ex.camera2.blocking.BlockingStateCallback;
 import com.android.ex.camera2.exceptions.TimeoutRuntimeException;
 
 
-//import java.io.File;
-//import java.io.FileOutputStream;
 //import java.io.IOException;
 //import java.io.OutputStream;
 //import java.nio.ByteBuffer;
 //import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 //import java.util.Arrays;
 import java.util.Collections;
@@ -367,6 +366,24 @@ public class NezaActivityFragment extends Fragment
         return new NezaActivityFragment();
     }
 
+    /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    /* Checks if external storage is available to at least read */
+    public boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        }
+        return false;
+    }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -393,6 +410,28 @@ public class NezaActivityFragment extends Fragment
         commThread = new Thread(new NezaComm.DetectThread());
         commThread.start();
 
+        Activity act = getActivity();
+        //File f = act.getApplicationContext().getFilesDir();
+      //  File f = getActivity().getExternalFilesDir(null);
+
+        File file = new File(act.getExternalFilesDir(null), "DemoFile.jpg");
+//        mFile = new File(getActivity().getExternalFilesDir(null), "pic.jpg");
+
+//        File f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);//.getAbs??olutePath();
+  //      File file = new File(f, "Camera/DemoFile.jpg");
+        String str = file.toString();
+
+        byte[] data = new byte[100];
+        try {
+            FileOutputStream os = new FileOutputStream(file);
+            os.write(data);
+            os.close();
+            Log.d(TAG, "bob file dir: "+ str);
+        } catch (IOException e) {
+            // Unable to create file, likely because external storage is
+            // not currently mounted.
+            Log.w("ExternalStorage", "Error writing " + file, e);
+        }
     }
 
     @Override

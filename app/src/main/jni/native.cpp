@@ -106,18 +106,27 @@ void LaneDetect(Mat & img_rgba) {
 
 //    inRange(img_hsv, Scalar(0, 0, 3), Scalar(180, 50, 255), img_gray);
 
-    inRange(img_hsv, Scalar(20, 4, 170), Scalar(50, 40, 255), img_gray);
+//    inRange(img_hsv, Scalar(10, 4, 150), Scalar(170, 180, 255), img_gray);
+//    inRange(img_hsv, Scalar(10, 0, 170), Scalar(70, 50, 255), img_gray);
+
+    // HSV: 45. 77, 91
+//    inRange(img_hsv, Scalar(10,150,170), Scalar(25, 255, 255),img_gray);
+
+    inRange(img_hsv, Scalar(65,50,220), Scalar(70, 160, 255),img_gray);
 
     cv::blur(img_gray, img_gray, Size(15, 15));
     threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
+
+//    FILE * fp;
+//    fp = fopen("/sang/1.dat", "a");
 
 #if 1
     Mat img_contours;
     Canny(img_gray,img_contours,50,250);
 
     img_dis = img_gray;
-    cvtColor(img_dis, img_3, COLOR_GRAY2RGB);
-    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
+//    cvtColor(img_dis, img_3, COLOR_GRAY2RGB);
+//    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
 
     //Mat img_contoursInv;
 //    threshold(contours,contoursInv,128,255,THRESH_BINARY_INV);
