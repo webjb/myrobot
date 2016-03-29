@@ -413,25 +413,48 @@ public class NezaActivityFragment extends Fragment
         Activity act = getActivity();
         //File f = act.getApplicationContext().getFilesDir();
       //  File f = getActivity().getExternalFilesDir(null);
+        if( isExternalStorageWritable() ) {
+            Log.d(TAG, "bob writable");
+        }
+        else {
+            Log.d(TAG, "bob NOT writable");
+        }
 
-        File file = new File(act.getExternalFilesDir(null), "DemoFile.jpg");
+//        File fp = new File(act.getExternalFilesDir(null), "DemoFile.jpg");
+
 //        mFile = new File(getActivity().getExternalFilesDir(null), "pic.jpg");
 
-//        File f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);//.getAbs??olutePath();
-  //      File file = new File(f, "Camera/DemoFile.jpg");
-        String str = file.toString();
+        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);//.getAbs??olutePath();
+        File fp = new File(file, "DemoFile2.dat");
+
+        File[] fList = file.listFiles();
+        for (File f : fList) {
+            if (f.isFile()) {
+                Log.d(TAG, "bob file: "+ f.toString());
+            } else if (file.isDirectory()) {
+                Log.d(TAG, "bob dir: " + f.getAbsolutePath());
+            }
+        }
+/*
+
+        String str = fp.toString();
 
         byte[] data = new byte[100];
         try {
-            FileOutputStream os = new FileOutputStream(file);
+            FileOutputStream os = new FileOutputStream(fp);
+            int i;
+            for( i=0;i<100;i++) {
+                data[i] = 0x33;
+            }
             os.write(data);
             os.close();
             Log.d(TAG, "bob file dir: "+ str);
         } catch (IOException e) {
             // Unable to create file, likely because external storage is
             // not currently mounted.
-            Log.w("ExternalStorage", "Error writing " + file, e);
+            Log.w("ExternalStorage", "Error writing " + fp, e);
         }
+*/
     }
 
     @Override
