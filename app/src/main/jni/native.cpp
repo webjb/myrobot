@@ -201,7 +201,19 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     jobject srcLumaByteBuffer, jint srcLumaRowStrideBytes,
     jobject srcChromaUByteBuffer, jobject srcChromaVByteBuffer,
     jint srcChromaElementStrideBytes, jint srcChromaRowStrideBytes,
-    jobject dstSurface) {
+    jobject dstSurface, jstring path, jint saveFile) {
+
+    const char *str = env->GetStringUTFChars(path,NULL);
+    LOGE("bob path:%s saveFile=%d", str, saveFile);
+    if( saveFile ) {
+        FILE * fp = fopen(str, "w");
+        if( fp)
+        {
+            fprintf(fp, "12345");
+            fclose(fp);
+        }
+    }
+
     if (srcChromaElementStrideBytes != 1 && srcChromaElementStrideBytes != 2) {
 		LOGE("!!!blit ERROR NOT YUV format!!!\n");
         return false;

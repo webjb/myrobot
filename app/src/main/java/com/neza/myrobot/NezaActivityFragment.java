@@ -128,6 +128,8 @@ public class NezaActivityFragment extends Fragment
 	
     private RefCountedAutoCloseable<ImageReader> mImageReader;
 
+    private int mTakePicture = 0;
+
     private HandlerThread mBackgroundThread;
 //    private final int mImageFormat = ImageFormat.FLEX_RGB_888;
     private static final int mImageFormat = ImageFormat.YUV_420_888;
@@ -137,6 +139,8 @@ public class NezaActivityFragment extends Fragment
     private final Handler mMessageHandler;
 
     private Thread commThread;
+
+    private String mFileName;
 
 //    CaptureCallbackWaiter mPreCaptureCallback = new CaptureCallbackWaiter();
 
@@ -281,8 +285,13 @@ public class NezaActivityFragment extends Fragment
                 }
                 int fmt = reader.getImageFormat();
                 Log.d(TAG,"bob image fmt:"+ fmt);
-
-                JNIUtils.blit(image, mSurface);
+                if( mTakePicture == 1) {
+                    JNIUtils.blit(image, mSurface, mFileName, mTakePicture);
+                    mTakePicture = 0;
+                }
+                else {
+                    JNIUtils.blit(image, mSurface, mFileName, mTakePicture);
+                }
                 //JNIUtils.blitraw(image, mSurface);
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Too many images queued for saving, dropping image for request: ");
@@ -392,9 +401,13 @@ public class NezaActivityFragment extends Fragment
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
-//        view.findViewById(R.id.picture).setOnClickListener(this);
+        view.findViewById(R.id.button).setOnClickListener(this);
 
 		mSurfaceView = (AutoFitSurfaceView) view.findViewById(R.id.surface_view);
+//		mSurfaceView.setAspectRatio(DESIRED_IMAGE_READER_SIZE.getWidth(),
+//                DESIRED_IMAGE_READER_SIZE.getHeight());
+	// This must be called here, before the initial buffer creation.
+	// Putting this inside surfaceCreated() is insufficient.
 
         mOrientationListener = new OrientationEventListener(getActivity(),
                 SensorManager.SENSOR_DELAY_NORMAL) {
@@ -435,6 +448,7 @@ public class NezaActivityFragment extends Fragment
                 Log.d(TAG, "bob dir: " + f.getAbsolutePath());
             }
         }
+        mFileName = fp.toString();
 /*
 
         String str = fp.toString();
@@ -514,7 +528,13 @@ public class NezaActivityFragment extends Fragment
 
     @Override
     public void onClick(View view) {
-
+        switch (view.getId()) {
+            case R.id.button: {
+                Log.d(TAG, "bob click");
+                mTakePicture = 1;
+                break;
+            }
+        }
     }
 
     private void showMissingPermissionError() {
