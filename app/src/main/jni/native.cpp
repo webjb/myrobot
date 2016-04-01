@@ -89,8 +89,10 @@ int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
     return d;
 }
 
-void LaneDetect(Mat & img_rgba) {
-    Mat img_gray;
+//#define fopen(name, mode) android_fopen(name, mode)
+
+void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
+    //Mat img_gray;
     Mat img_hsv;
     Mat img_3;
     Mat img_dis;
@@ -98,8 +100,49 @@ void LaneDetect(Mat & img_rgba) {
 //    cvtColor(img_rgba, img_gray, COLOR_RGBA2GRAY);
 //    cvtColor(img_gray, img_3, COLOR_GRAY2RGB);
 //    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
-
+    cv::Mat img_gray(img_rgba.size(), CV_8UC1);
     cv::cvtColor(img_rgba, img_hsv, CV_RGB2HSV);
+
+//    if( saveFile )
+    {
+        char fn[100];
+        sprintf(fn, "%s/hsv.txt", str);
+//        FILE * fp = fopen(fn, "w");
+//        if( fp )
+        {
+            uchar * buf;
+            buf = img_hsv.data;
+            //vector<Mat> channels;
+            //split(img_hsv, channels);
+            int i;
+            int j;
+            for( i=0;i<img_hsv.rows; i++) {
+//                if( (i+1)%50 == 0) {
+//                    fprintf(fp, "%d-- ", i);
+//                }
+                for(j=0;j<img_hsv.cols;j++) {
+                    uchar *b;
+                    b = buf + i * img_hsv.cols *3  + j*3;
+
+//                    fwrite(buf, (size_t) img_hsv.rows * img_hsv.cols, 1, fp);
+//                    if (((b[0] < 80) && (b[0] > 60)) && ((b[1] < 153) && (b[1] > 50))&& ((b[2] <= 255) && (b[2] > 200)) ) {
+//                    if (((b[0] < 90) && (b[0] > 50)) && ((b[1] < 170) && (b[1] > 40))&& ((b[2] <= 255) && (b[2] > 180)) ) {
+//                    if (((b[0] < 100) && (b[0] > 40)) && ((b[1] < 180) && (b[1] > 30))&& ((b[2] <= 255) && (b[2] > 160)) ) {
+                    if (((b[0] < 120) && (b[0] > 30)) && ((b[1] < 190) && (b[1] > 20))&& ((b[2] <= 255) && (b[2] > 130)) ) {
+//                        fprintf(fp, "(%03d,%03d,%03d) ", b[0], b[1], b[2]);
+                        img_gray.at<uchar>(i,j) = 255;
+                    }
+                    else {
+//                        fprintf(fp, "(---,---,---) ");
+                        img_gray.at<uchar>(i,j) = 0;
+                    }
+                }
+//                fprintf(fp, "\n");
+            }
+//            fclose(fp);
+        }
+    }
+
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(140, 150, 255), img_gray);
 //    inRange(img_hsv, Scalar(20, 0, 70), Scalar(40, 50, 200), img_gray);
@@ -112,21 +155,22 @@ void LaneDetect(Mat & img_rgba) {
     // HSV: 45. 77, 91
 //    inRange(img_hsv, Scalar(10,150,170), Scalar(25, 255, 255),img_gray);
 
-    inRange(img_hsv, Scalar(65,50,220), Scalar(70, 160, 255),img_gray);
+//    inRange(img_hsv, Scalar(65,50,220), Scalar(70, 160, 255),img_gray);
+
+    img_dis = img_gray;
+    cvtColor(img_dis, img_3, COLOR_GRAY2RGB);
+    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
 
     cv::blur(img_gray, img_gray, Size(15, 15));
     threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
 
 //    FILE * fp;
 //    fp = fopen("/sang/1.dat", "a");
+//    fclose(fp);
 
 #if 1
     Mat img_contours;
     Canny(img_gray,img_contours,50,250);
-
-    img_dis = img_gray;
-//    cvtColor(img_dis, img_3, COLOR_GRAY2RGB);
-//    cv::cvtColor(img_3, img_rgba , CV_RGB2RGBA);
 
     //Mat img_contoursInv;
 //    threshold(contours,contoursInv,128,255,THRESH_BINARY_INV);
@@ -205,14 +249,6 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
 
     const char *str = env->GetStringUTFChars(path,NULL);
     LOGE("bob path:%s saveFile=%d", str, saveFile);
-    if( saveFile ) {
-        FILE * fp = fopen(str, "w");
-        if( fp)
-        {
-            fprintf(fp, "12345");
-            fclose(fp);
-        }
-    }
 
     if (srcChromaElementStrideBytes != 1 && srcChromaElementStrideBytes != 2) {
 		LOGE("!!!blit ERROR NOT YUV format!!!\n");
@@ -297,7 +333,7 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         LOGE("ball not detected");
 #endif
 
-    LaneDetect(flipRgba);
+    LaneDetect(flipRgba, str, saveFile);
 
     // copy to TextureView surface
     uchar * dbuf;

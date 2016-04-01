@@ -448,7 +448,7 @@ public class NezaActivityFragment extends Fragment
                 Log.d(TAG, "bob dir: " + f.getAbsolutePath());
             }
         }
-        mFileName = fp.toString();
+        mFileName = file.toString();
 /*
 
         String str = fp.toString();
