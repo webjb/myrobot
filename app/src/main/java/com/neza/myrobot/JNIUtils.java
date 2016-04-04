@@ -97,7 +97,8 @@ public class JNIUtils {
      * {@code configureSurface()}.
      */
     public static boolean blit(Image src, Surface dst, String path, int savefile) {
-        Mat                    mRgba;
+        Mat mRgba;
+        Mat mLines;
         if (src.getFormat() != ImageFormat.YUV_420_888) {
             throw new IllegalArgumentException("src must have format YUV_420_888.");
         }
@@ -110,11 +111,13 @@ public class JNIUtils {
                     "src chroma plane must have a pixel stride of 1 or 2: got "
                     + planes[1].getPixelStride());
         }
+        mLines = new Mat();
+
         mRgba = new Mat();
         mRgba.release();
         return blit(src.getWidth(), src.getHeight(), planes[0].getBuffer(),
                 planes[0].getRowStride(), planes[1].getBuffer(), planes[2].getBuffer(),
-                planes[1].getPixelStride(), planes[1].getRowStride(), dst, path,savefile );
+                planes[1].getPixelStride(), planes[1].getRowStride(), dst, path,savefile, mLines.getNativeObjAddr() );
     }
 
 
@@ -122,7 +125,7 @@ public class JNIUtils {
 
     private static native boolean blit(int srcWidth, int srcHeight, ByteBuffer srcLuma,
             int srcLumaRowStride, ByteBuffer srcChromaU, ByteBuffer srcChromaV,
-            int srcChromaUElementStride, int srcChromaURowStride, Surface dst, String path, int savefile);
+            int srcChromaUElementStride, int srcChromaURowStride, Surface dst, String path, int savefile, long lines);
 
 
     private static native boolean blitraw(int srcWidth, int srcHeight, long yuv,

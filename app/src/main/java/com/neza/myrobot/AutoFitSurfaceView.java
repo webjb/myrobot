@@ -68,10 +68,10 @@ public class AutoFitSurfaceView extends TextureView {
             setMeasuredDimension(width, height);
         } else {
             if (width < height * mRatioWidth / mRatioHeight) {
-                Log.d(TAG, String.format("bob setting measured dimension to %d x %d", width, width * mRatioHeight / mRatioWidth));
+//                Log.d(TAG, String.format("bob setting measured dimension to %d x %d", width, width * mRatioHeight / mRatioWidth));
                 setMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
             } else {
-                Log.d(TAG, String.format("bob setting measured dimension to %d x %d", height * mRatioWidth / mRatioHeight, height));
+//                Log.d(TAG, String.format("bob setting measured dimension to %d x %d", height * mRatioWidth / mRatioHeight, height));
                 setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
             }
         }

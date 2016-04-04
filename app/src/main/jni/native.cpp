@@ -43,6 +43,12 @@ using namespace cv;
 // E.g., ALIGN(x, 16) means round x up to the nearest multiple of 16.
 #define ALIGN(x, mask) (((x) + (mask)-1) & ~((mask)-1))
 
+typedef struct b_line_
+{
+    float m_alpha;
+    int m_dis;
+} b_line;
+
 bool checkBufferSizesMatch(int srcWidth, int srcHeight,
         const ANativeWindow_Buffer *buf) {
     return (srcWidth == buf->width && srcHeight == buf->height);
@@ -76,7 +82,7 @@ int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
         a = a / ((float) (x1 - x0));
         b = y0 - a * (float) x0;
         alpha = atan(a);
-        d = (int)(abs(b/a) * sin(alpha));
+        d = (int)((b/a) * sin(alpha));
 
         alpha *= 180/PI;
     }
@@ -84,18 +90,17 @@ int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
         alpha = 90;
         d = x1;
     }
-
+    d = abs(d);
     //LOGE("bob alpha:%f distance:%d",alpha, d);
     return d;
 }
 
-//#define fopen(name, mode) android_fopen(name, mode)
-
 void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
-    //Mat img_gray;
+
     Mat img_hsv;
     Mat img_3;
     Mat img_dis;
+    FILE *fp = NULL;
 
 //    cvtColor(img_rgba, img_gray, COLOR_RGBA2GRAY);
 //    cvtColor(img_gray, img_3, COLOR_GRAY2RGB);
@@ -103,45 +108,56 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
     cv::Mat img_gray(img_rgba.size(), CV_8UC1);
     cv::cvtColor(img_rgba, img_hsv, CV_RGB2HSV);
 
-//    if( saveFile )
-    {
+    if (saveFile) {
         char fn[100];
         sprintf(fn, "%s/hsv.txt", str);
-//        FILE * fp = fopen(fn, "w");
-//        if( fp )
-        {
-            uchar * buf;
-            buf = img_hsv.data;
-            //vector<Mat> channels;
-            //split(img_hsv, channels);
-            int i;
-            int j;
-            for( i=0;i<img_hsv.rows; i++) {
-//                if( (i+1)%50 == 0) {
-//                    fprintf(fp, "%d-- ", i);
-//                }
-                for(j=0;j<img_hsv.cols;j++) {
-                    uchar *b;
-                    b = buf + i * img_hsv.cols *3  + j*3;
+        fp = fopen(fn, "w");
+    }
 
-//                    fwrite(buf, (size_t) img_hsv.rows * img_hsv.cols, 1, fp);
-//                    if (((b[0] < 80) && (b[0] > 60)) && ((b[1] < 153) && (b[1] > 50))&& ((b[2] <= 255) && (b[2] > 200)) ) {
-//                    if (((b[0] < 90) && (b[0] > 50)) && ((b[1] < 170) && (b[1] > 40))&& ((b[2] <= 255) && (b[2] > 180)) ) {
-//                    if (((b[0] < 100) && (b[0] > 40)) && ((b[1] < 180) && (b[1] > 30))&& ((b[2] <= 255) && (b[2] > 160)) ) {
-                    if (((b[0] < 120) && (b[0] > 30)) && ((b[1] < 190) && (b[1] > 20))&& ((b[2] <= 255) && (b[2] > 130)) ) {
-//                        fprintf(fp, "(%03d,%03d,%03d) ", b[0], b[1], b[2]);
-                        img_gray.at<uchar>(i,j) = 255;
-                    }
-                    else {
-//                        fprintf(fp, "(---,---,---) ");
-                        img_gray.at<uchar>(i,j) = 0;
-                    }
+    int h_max;
+    int h_min;
+    int s_max;
+    int s_min;
+    int v_max;
+    int v_min;
+
+    uchar *buf;
+    buf = img_hsv.data;
+
+//    h_max = 100;    h_min = 40;    s_max = 180;    s_min = 30;    v_max = 255;    v_min = 160;
+    h_max = 100;    h_min = 50;    s_max = 240;    s_min = 20;    v_max = 255;    v_min = 110;
+
+    if( fp ) {
+        h_max = 100;    h_min = 50;    s_max = 250;    s_min = 10;    v_max = 255;    v_min = 50;
+    }
+
+    int i;
+    int j;
+    for (i = 0; i < img_hsv.rows; i++) {
+        for (j = 0; j < img_hsv.cols; j++) {
+            uchar *b;
+            b = buf + i * img_hsv.cols * 3 + j * 3;
+            if (((b[0] <= h_max) && (b[0] >= h_min) && ((b[1] <= s_max) && (b[1] >= s_min)) && ((b[2] <= v_max) && (b[2] >= v_min)))) {
+                if (fp) {
+                    fprintf(fp, "(%03d,%03d,%03d) ", b[0], b[1], b[2]);
                 }
-//                fprintf(fp, "\n");
+                img_gray.at<uchar>(i, j) = 255;
             }
-//            fclose(fp);
+            else {
+                if (fp) {
+                    fprintf(fp, "(---,---,---) ");
+                }
+                img_gray.at<uchar>(i, j) = 0;
+            }
+        }
+        if (fp) {
+            fprintf(fp, "\n");
         }
     }
+    if (fp) {
+        fclose(fp);
+    }
+    LOGE("bob 11111");
 
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(140, 150, 255), img_gray);
@@ -163,11 +179,7 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
 
     cv::blur(img_gray, img_gray, Size(15, 15));
     threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
-
-//    FILE * fp;
-//    fp = fopen("/sang/1.dat", "a");
-//    fclose(fp);
-
+    LOGE("bob 22222222222");
 #if 1
     Mat img_contours;
     Canny(img_gray,img_contours,50,250);
@@ -185,21 +197,68 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
     int width;
     int height;
     int distance;
+
+    b_line m_lines[10];
+    int line_count;
     width = img_rgba.cols;
     height = img_rgba.rows;
-    for( size_t i = 0; i < lines.size(); i++ )
+    line_count = 0;
+    for( i=0;i<10;i++) {
+        m_lines[i].m_alpha = 0.0;
+        m_lines[i].m_dis = -1;
+    }
+    for( i = 0; i < lines.size(); i++ )
     {
         line( img_rgba, Point(lines[i][0], lines[i][1]),
               Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
 
         distance = calc_distance(width, height, Point(lines[i][0],lines[i][1]), Point(lines[i][2], lines[i][3]), alpha);
+        if( m_lines[0].m_dis == -1 )
+        {
+            m_lines[0].m_dis = distance;
+            m_lines[0].m_alpha = alpha;
+            line_count = 1;
+        }
+        else
+        {
+            int j;
+            int findit = 0;
+            for( j=0; j<line_count; j++ )
+            {
+                if( (m_lines[j].m_alpha < alpha + 5 ) && (m_lines[j].m_alpha > alpha - 5) )
+                {
+                    if( m_lines[j].m_dis > distance )
+                    {
+                        m_lines[j].m_dis = distance;
+                        m_lines[j].m_alpha = alpha;
+                    }
+                    findit = 1;
+                    break;
+                }
+                else {
+
+                }
+            }
+            if( !findit ) {
+                m_lines[line_count].m_alpha = alpha;
+                m_lines[line_count].m_dis = distance;
+                line_count ++;
+            }
+
+        }
+
         LOGE("bob lines dis (%d,%d) - (%d,%d) alpha:%f distance:%d\n", lines[i][0], lines[i][1], lines[i][2], lines[i][3], alpha, distance);
     }
+    LOGE("bob lines ------\n");
+    for (i = 0; i<line_count; i++) {
+        LOGE("bob lines result:%d alpha:%f dis:%d \n", i, m_lines[i].m_alpha, m_lines[i].m_dis);
+    }
+    LOGE("bob line detect done");
 #endif
 //    erode(img_gray, img_gray, kernel_ero);
 }
 
-void BallDetect(Mat & img_rgba, int &x, int &y, int &r) {
+void BallDetect(Mat & img_rgba, int &x, int &y, int &r, Mat & outLines) {
     int width;
     int height;
     width = img_rgba.cols;
@@ -245,7 +304,9 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     jobject srcLumaByteBuffer, jint srcLumaRowStrideBytes,
     jobject srcChromaUByteBuffer, jobject srcChromaVByteBuffer,
     jint srcChromaElementStrideBytes, jint srcChromaRowStrideBytes,
-    jobject dstSurface, jstring path, jint saveFile) {
+    jobject dstSurface, jstring path, jint saveFile, jlong outPtr) {
+
+    Mat* mLinesOut = (Mat*) outPtr;
 
     const char *str = env->GetStringUTFChars(path,NULL);
     LOGE("bob path:%s saveFile=%d", str, saveFile);
@@ -333,7 +394,7 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         LOGE("ball not detected");
 #endif
 
-    LaneDetect(flipRgba, str, saveFile);
+    LaneDetect(flipRgba, str, saveFile, mLinesOut);
 
     // copy to TextureView surface
     uchar * dbuf;
