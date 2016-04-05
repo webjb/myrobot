@@ -141,6 +141,8 @@ public class NezaActivityFragment extends Fragment
     private Thread commThread;
 
     private String mFileName;
+    private NezaComm comm = new NezaComm();
+
 
 //    CaptureCallbackWaiter mPreCaptureCallback = new CaptureCallbackWaiter();
 
@@ -277,6 +279,7 @@ public class NezaActivityFragment extends Fragment
             //bob sang
             //Log.d(TAG, "bob image avail RAW");
             Image image;
+            String result;
 
             try {
                 image = reader.acquireLatestImage();
@@ -286,12 +289,15 @@ public class NezaActivityFragment extends Fragment
                 int fmt = reader.getImageFormat();
                 Log.d(TAG,"bob image fmt:"+ fmt);
                 if( mTakePicture == 1) {
-                    JNIUtils.blit(image, mSurface, mFileName, mTakePicture);
+                    result = JNIUtils.detectLane(image, mSurface, mFileName, mTakePicture);
                     mTakePicture = 0;
                 }
                 else {
-                    JNIUtils.blit(image, mSurface, mFileName, mTakePicture);
+                    result = JNIUtils.detectLane(image, mSurface, mFileName, mTakePicture);
                 }
+                Log.d(TAG, "bob Lane Detect result: " + result);
+
+                comm.send_message(result);
                 //JNIUtils.blitraw(image, mSurface);
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Too many images queued for saving, dropping image for request: ");
@@ -420,8 +426,9 @@ public class NezaActivityFragment extends Fragment
             }
         };
 
-        commThread = new Thread(new NezaComm.DetectThread());
-        commThread.start();
+//        commThread = new Thread(new NezaComm.DetectThread());
+//        commThread.start();
+        comm.openSocket();
 
         Activity act = getActivity();
         //File f = act.getApplicationContext().getFilesDir();

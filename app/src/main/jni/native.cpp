@@ -95,8 +95,8 @@ int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
     return d;
 }
 
-void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
-
+void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
+{
     Mat img_hsv;
     Mat img_3;
     Mat img_dis;
@@ -157,7 +157,6 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
     if (fp) {
         fclose(fp);
     }
-    LOGE("bob 11111");
 
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(80, 100, 255), img_gray);
 //    inRange(img_hsv, Scalar(0, 0, 20), Scalar(140, 150, 255), img_gray);
@@ -179,7 +178,7 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
 
     cv::blur(img_gray, img_gray, Size(15, 15));
     threshold(img_gray, img_gray, 100, 255, CV_THRESH_BINARY);
-    LOGE("bob 22222222222");
+
 #if 1
     Mat img_contours;
     Canny(img_gray,img_contours,50,250);
@@ -244,18 +243,21 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile) {
                 m_lines[line_count].m_dis = distance;
                 line_count ++;
             }
-
         }
 
         LOGE("bob lines dis (%d,%d) - (%d,%d) alpha:%f distance:%d\n", lines[i][0], lines[i][1], lines[i][2], lines[i][3], alpha, distance);
     }
     LOGE("bob lines ------\n");
+    char * pbuf = outStr;
+    sprintf(pbuf, "lane:count=%d", line_count);
+    pbuf += strlen(pbuf);
     for (i = 0; i<line_count; i++) {
         LOGE("bob lines result:%d alpha:%f dis:%d \n", i, m_lines[i].m_alpha, m_lines[i].m_dis);
+        sprintf(pbuf, " (%d,%d)", (int)m_lines[i].m_alpha, m_lines[i].m_dis);
+        pbuf += strlen(pbuf);
     }
     LOGE("bob line detect done");
 #endif
-//    erode(img_gray, img_gray, kernel_ero);
 }
 
 void BallDetect(Mat & img_rgba, int &x, int &y, int &r, Mat & outLines) {
@@ -299,62 +301,43 @@ void BallDetect(Mat & img_rgba, int &x, int &y, int &r, Mat & outLines) {
 }
 
 extern "C" {
+/*
 JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     JNIEnv *env, jobject obj, jint srcWidth, jint srcHeight,
     jobject srcLumaByteBuffer, jint srcLumaRowStrideBytes,
     jobject srcChromaUByteBuffer, jobject srcChromaVByteBuffer,
     jint srcChromaElementStrideBytes, jint srcChromaRowStrideBytes,
     jobject dstSurface, jstring path, jint saveFile, jlong outPtr) {
+*/
 
-    Mat* mLinesOut = (Mat*) outPtr;
+JNIEXPORT jstring JNICALL Java_com_neza_myrobot_JNIUtils_detectLane(
+            JNIEnv *env, jobject obj, jint srcWidth, jint srcHeight,
+            jobject srcBuffer, jobject dstSurface, jstring path, jint saveFile) {
+    char outStr[200];
 
-    const char *str = env->GetStringUTFChars(path,NULL);
+    const char *str = env->GetStringUTFChars(path, NULL);
     LOGE("bob path:%s saveFile=%d", str, saveFile);
 
-    if (srcChromaElementStrideBytes != 1 && srcChromaElementStrideBytes != 2) {
-		LOGE("!!!blit ERROR NOT YUV format!!!\n");
-        return false;
-    }
+    uint8_t *srcLumaPtr = reinterpret_cast<uint8_t *>(env->GetDirectBufferAddress(srcBuffer));
 
-    uint8_t *srcLumaPtr = reinterpret_cast<uint8_t *>(
-        env->GetDirectBufferAddress(srcLumaByteBuffer));
-    uint8_t *srcChromaUPtr = reinterpret_cast<uint8_t *>(
-        env->GetDirectBufferAddress(srcChromaUByteBuffer));
-    uint8_t *srcChromaVPtr = reinterpret_cast<uint8_t *>(
-        env->GetDirectBufferAddress(srcChromaVByteBuffer));
-	
-    if (srcLumaPtr == nullptr || srcChromaUPtr == nullptr || srcChromaVPtr == nullptr) {
+    if (srcLumaPtr == nullptr) {
         LOGE("blit NULL pointer ERROR");
-        return false;
+        return NULL;
     }
 
     int dstWidth;
     int dstHeight;
 
-//    LOGE("blit src: width=%d height=%d\n", srcWidth, srcHeight);
-
-    cv::Mat mYuv(srcHeight + srcHeight/2,srcWidth, CV_8UC1, srcLumaPtr);
+    cv::Mat mYuv(srcHeight + srcHeight / 2, srcWidth, CV_8UC1, srcLumaPtr);
 
     uint8_t *srcChromaUVInterleavedPtr = nullptr;
     bool swapDstUV;
-    if (srcChromaElementStrideBytes == 2) {
-        if (srcChromaVPtr - srcChromaUPtr == 1) {
-            srcChromaUVInterleavedPtr = srcChromaUPtr;  // UVUVUV...
-            swapDstUV = false;
-        } else if (srcChromaUPtr - srcChromaVPtr == 1) {
-            srcChromaUVInterleavedPtr = srcChromaVPtr;  // VUVUVU...
-            swapDstUV = true;
-        } else {
-            // stride is 2 but the pointers are not off by 1.
-            return false;
-        }
-    }
 
     ANativeWindow *win = ANativeWindow_fromSurface(env, dstSurface);
     ANativeWindow_acquire(win);
-	
+
     ANativeWindow_Buffer buf;
-	
+
     dstWidth = srcHeight;
     dstHeight = srcWidth;
 //    dstWidth = srcWidth;
@@ -365,15 +348,16 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
     if (int32_t err = ANativeWindow_lock(win, &buf, NULL)) {
         LOGE("ANativeWindow_lock failed with error code %d\n", err);
         ANativeWindow_release(win);
-        return false;
+        return NULL;
     }
 
     uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
-    Mat dstRgba(dstHeight, buf.stride, CV_8UC4, dstLumaPtr);		// TextureView buffer, use stride as width
+    Mat dstRgba(dstHeight, buf.stride, CV_8UC4,
+                dstLumaPtr);        // TextureView buffer, use stride as width
     Mat srcRgba(srcHeight, srcWidth, CV_8UC4);
     Mat flipRgba(dstHeight, dstWidth, CV_8UC4);
 
-	// convert YUV -> RGBA
+    // convert YUV -> RGBA
     cv::cvtColor(mYuv, srcRgba, CV_YUV2RGBA_NV21);
 
 	// Rotate 90 degree
@@ -394,11 +378,11 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         LOGE("ball not detected");
 #endif
 
-    LaneDetect(flipRgba, str, saveFile, mLinesOut);
+    LaneDetect(flipRgba, str, saveFile, outStr);
 
     // copy to TextureView surface
-    uchar * dbuf;
-    uchar * sbuf;
+    uchar *dbuf;
+    uchar *sbuf;
     dbuf = dstRgba.data;
     sbuf = flipRgba.data;
     int i;
@@ -408,17 +392,20 @@ JNIEXPORT bool JNICALL Java_com_neza_myrobot_JNIUtils_blit(
         sbuf += flipRgba.cols * 4;
     }
 
-	// Draw some rectangles
-    Point p1(100,100);
-    Point p2(300,300);
-    cv::rectangle(dstRgba,p1,p2,Scalar(255,255,255));
-    cv::rectangle(dstRgba,Point(10,10),Point(dstWidth-1,dstHeight-1),Scalar(255,255,255));
-    cv::rectangle(dstRgba,Point(100,100),Point(dstWidth/2,dstWidth/2),Scalar(255,255,255));
+    // Draw some rectangles
+    Point p1(100, 100);
+    Point p2(300, 300);
+    cv::rectangle(dstRgba, p1, p2, Scalar(255, 255, 255));
+    cv::rectangle(dstRgba, Point(10, 10), Point(dstWidth - 1, dstHeight - 1),
+                  Scalar(255, 255, 255));
+    cv::rectangle(dstRgba, Point(100, 100), Point(dstWidth / 2, dstWidth / 2),
+                  Scalar(255, 255, 255));
 
     LOGE("bob dstWidth=%d height=%d", dstWidth, dstHeight);
     ANativeWindow_unlockAndPost(win);
     ANativeWindow_release(win);
-    return 0;
+
+    return env->NewStringUTF(outStr);
 }
 }
 
