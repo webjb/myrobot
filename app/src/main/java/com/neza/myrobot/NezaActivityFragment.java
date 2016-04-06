@@ -297,7 +297,7 @@ public class NezaActivityFragment extends Fragment
                 }
                 Log.d(TAG, "bob Lane Detect result: " + result);
 
-                comm.send_message(result);
+                comm.send_lane(result);
                 //JNIUtils.blitraw(image, mSurface);
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Too many images queued for saving, dropping image for request: ");
@@ -426,9 +426,7 @@ public class NezaActivityFragment extends Fragment
             }
         };
 
-//        commThread = new Thread(new NezaComm.DetectThread());
-//        commThread.start();
-        comm.openSocket();
+        comm.start();
 
         Activity act = getActivity();
         //File f = act.getApplicationContext().getFilesDir();
@@ -509,13 +507,7 @@ public class NezaActivityFragment extends Fragment
         closeCamera();
         stopBackgroundThread();
 
-        try {
-            commThread.join();
-            commThread = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        comm.stop();
         super.onPause();
     }
 

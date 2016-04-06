@@ -40,7 +40,7 @@ public class NezaComm {
                     new OutputStreamWriter(mSocket.getOutputStream())),
                     true);
             out.println(str);
-            Log.d(TAG, "bob send OK");
+            Log.d(TAG, "bob send OK " + str);
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -50,6 +50,11 @@ public class NezaComm {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    public int send_lane(String str) {
+        str = "<cmd>laneloc="+str+ "</cmd>";
+        return send_message(str);
     }
     public boolean isConnected(Activity activity)
     {
@@ -118,37 +123,49 @@ public class NezaComm {
          }
     }
 
-    class ClientThread implements Runnable {
+    class ServerThread implements Runnable {
         @Override
         public void run() {
+            mSocketOpened = 0;
             try {
+                Log.d(TAG, "bob comm run ...");
                 InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
                 mSocket = new Socket(serverAddr, SERVERPORT);
-                Log.i(TAG, "open socket");
+                mSocketOpened = 1;
+                Log.d(TAG, "bob open socket");
             } catch (UnknownHostException e1) {
                 e1.printStackTrace();
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
+            if( mSocketOpened == 0) {
+                Log.d(TAG," bob open socket ERROR");
+            }
         }
     }
 
-    public int openSocket()
+    public int start()
     {
-        mSocketOpened = 0;
-        try {
-            InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
-            mSocket = new Socket(serverAddr, SERVERPORT);
-            mSocketOpened = 1;
-            Log.i(TAG, "bob open socket");
-        } catch (UnknownHostException e1) {
-            e1.printStackTrace();
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
-        if( mSocketOpened == 0) {
-            Log.i(TAG," bob open socket ERROR");
+        Log.d(TAG, "bob start...");
+        serverThread = new Thread(new ServerThread());
+        serverThread.start();
+        return 0;
+    }
+
+    public int stop()
+    {
+        if( serverThread != null )
+        {
+            try
+            {
+                serverThread.join();
+                serverThread = null;
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         return 0;
     }
+
 }

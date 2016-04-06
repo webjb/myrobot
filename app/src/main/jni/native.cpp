@@ -249,11 +249,11 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
     }
     LOGE("bob lines ------\n");
     char * pbuf = outStr;
-    sprintf(pbuf, "lane:count=%d", line_count);
+    sprintf(pbuf, "count=%d;", line_count);
     pbuf += strlen(pbuf);
     for (i = 0; i<line_count; i++) {
         LOGE("bob lines result:%d alpha:%f dis:%d \n", i, m_lines[i].m_alpha, m_lines[i].m_dis);
-        sprintf(pbuf, " (%d,%d)", (int)m_lines[i].m_alpha, m_lines[i].m_dis);
+        sprintf(pbuf, "(%d,%d);", (int)m_lines[i].m_alpha, m_lines[i].m_dis);
         pbuf += strlen(pbuf);
     }
     LOGE("bob line detect done");
