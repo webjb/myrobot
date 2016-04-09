@@ -47,6 +47,7 @@ typedef struct b_line_
 {
     float m_alpha;
     int m_dis;
+    int m_lr; // left or right 0-left,  1-right
 } b_line;
 
 bool checkBufferSizesMatch(int srcWidth, int srcHeight,
@@ -56,7 +57,7 @@ bool checkBufferSizesMatch(int srcWidth, int srcHeight,
 
 #define PI 3.14159
 
-int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
+int calc_distance(int width, int height, Point p0, Point p1, float & alpha, int & lr ) {
     int x0;
     int y0;
     int x1;
@@ -65,7 +66,8 @@ int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
     int y_org;
     float a;
     float b;
-//    float alpha;
+
+    lr = 0;
     x_org = width/2;
     y_org = height;
 
@@ -85,11 +87,30 @@ int calc_distance(int width, int height, Point p0, Point p1, float & alpha ) {
         d = (int)((b/a) * sin(alpha));
 
         alpha *= 180/PI;
+        if( ((b>0) && (a<0)) || ((b<0)&& (a>0)))
+        {
+            lr = 1;
+        }
+        else
+        {
+            lr = 0;
+        }
+
     }
     else {
+        a = 0;
+        b = 0;
         alpha = 90;
         d = x1;
+        if( d > 0 ) {
+            lr = 1;
+        }
+        else
+        {
+            lr = 0;
+        }
     }
+
     d = abs(d);
     //LOGE("bob alpha:%f distance:%d",alpha, d);
     return d;
@@ -196,6 +217,7 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
     int width;
     int height;
     int distance;
+    int lr = 0;
 
     b_line m_lines[10];
     int line_count;
@@ -211,11 +233,12 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
         line( img_rgba, Point(lines[i][0], lines[i][1]),
               Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
 
-        distance = calc_distance(width, height, Point(lines[i][0],lines[i][1]), Point(lines[i][2], lines[i][3]), alpha);
+        distance = calc_distance(width, height, Point(lines[i][0],lines[i][1]), Point(lines[i][2], lines[i][3]), alpha, lr);
         if( m_lines[0].m_dis == -1 )
         {
             m_lines[0].m_dis = distance;
             m_lines[0].m_alpha = alpha;
+            m_lines[0].m_lr = lr;
             line_count = 1;
         }
         else
@@ -230,6 +253,7 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
                     {
                         m_lines[j].m_dis = distance;
                         m_lines[j].m_alpha = alpha;
+                        m_lines[j].m_lr = lr;
                     }
                     findit = 1;
                     break;
@@ -241,6 +265,7 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
             if( !findit ) {
                 m_lines[line_count].m_alpha = alpha;
                 m_lines[line_count].m_dis = distance;
+                m_lines[line_count].m_lr = lr;
                 line_count ++;
             }
         }
@@ -252,8 +277,8 @@ void LaneDetect(Mat & img_rgba, const char * str, int saveFile, char * outStr)
     sprintf(pbuf, "count=%d;", line_count);
     pbuf += strlen(pbuf);
     for (i = 0; i<line_count; i++) {
-        LOGE("bob lines result:%d alpha:%f dis:%d \n", i, m_lines[i].m_alpha, m_lines[i].m_dis);
-        sprintf(pbuf, "(%d,%d);", (int)m_lines[i].m_alpha, m_lines[i].m_dis);
+        LOGE("bob lines result:%d alpha:%f dis:%d lr:%d\n", i, m_lines[i].m_alpha, m_lines[i].m_dis, m_lines[i].m_lr);
+        sprintf(pbuf, "(%d,%d,%d);", (int)m_lines[i].m_alpha, m_lines[i].m_dis, m_lines[i].m_lr);
         pbuf += strlen(pbuf);
     }
     LOGE("bob line detect done");
